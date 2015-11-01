@@ -114,26 +114,33 @@ def main(num_epochs=NUM_EPOCHS):
     l_c2w_after = lasagne.layers.ElemwiseSumLayer([l_fdense_after, l_bdense_after], coeffs=1)
 
     # Word embeddings
-    source_emb = lasagne.layers.get_output(l_c2w_source)
-    before_emb = lasagne.layers.get_output(l_c2w_before)
-    after_emb = lasagne.layers.get_output(l_c2w_after)
+    source = T.itensor3()
+    before = T.itensor3()
+    after = T.itensor3()
+    source_emb = lasagne.layers.get_output(l_c2w_source, source)
+    before_emb = lasagne.layers.get_output(l_c2w_before, before)
+    after_emb = lasagne.layers.get_output(l_c2w_after, after)
 
     # Theano function
-    c2w = theano.function([l_in_source.input_var, l_in_before.input_var, l_in_after.input_var], [source_emb, before_emb, after_emb])
+    c2w_source = theano.function([source], source_emb)
+    c2w_before = theano.function([before], before_emb)
+    c2w_after = theano.function([after], after_emb)
 
     # Test
-    s = np.ones(4,dtype=np.int32)
-    b = np.ones(4,dtype=np.int32)
-    a = np.ones(4,dtype=np.int32)
+    s = np.ones((1,4,1),dtype=np.int32)
+    b = np.ones((1,4,1),dtype=np.int32)
+    a = np.ones((1,4,1),dtype=np.int32)
     print "Input - \n"
     print str(s)
     print str(b)
     print str(a)
-    emb = c2w([s,b,a])
+    emb_source = c2w_source(s)
+    emb_before = c2w_before(b)
+    emb_after = c2w_after(a)
     print "Output - \n"
-    print str(emb[0])
-    print str(emb[1])
-    print str(emb[2])
+    print str(emb_source)
+    print str(emb_before)
+    print str(emb_after)
 
 if __name__ == '__main__':
     main()
