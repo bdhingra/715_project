@@ -2,6 +2,8 @@ import numpy
 import copy
 from collections import OrderedDict
 
+MAX_LENGTH = 140
+
 class BatchedTweets():
 
     def __init__(self, data, validation_size=1000, batch_size=128, maxlen=None):
@@ -79,7 +81,7 @@ class BatchedTweets():
     def __iter__(self):
         return self
 
-def prepare_data(seqs_x, seqs_y, seqs_z, chardict, maxlen=None, n_chars=20000):
+def prepare_data(seqs_x, seqs_y, seqs_z, chardict, maxlen=MAX_LENGTH, n_chars=20000):
     """
     Put the data into format useable by the model
     """
@@ -87,11 +89,11 @@ def prepare_data(seqs_x, seqs_y, seqs_z, chardict, maxlen=None, n_chars=20000):
     seqsY = []
     seqsZ = []
     for cc in seqs_x:
-        seqsX.append([chardict[c] if chardict[c] < n_chars else 1 for c in list(cc)])
+        seqsX.append([chardict[c] if chardict[c] < n_chars else 0 for c in list(cc)])
     for cc in seqs_y:
-        seqsY.append([chardict[c] if chardict[c] < n_chars else 1 for c in list(cc)])
+        seqsY.append([chardict[c] if chardict[c] < n_chars else 0 for c in list(cc)])
     for cc in seqs_z:
-        seqsZ.append([chardict[c] if chardict[c] < n_chars else 1 for c in list(cc)])
+        seqsZ.append([chardict[c] if chardict[c] < n_chars else 0 for c in list(cc)])
     seqs_x = seqsX
     seqs_y = seqsY
     seqs_z = seqsZ
@@ -130,21 +132,21 @@ def prepare_data(seqs_x, seqs_y, seqs_z, chardict, maxlen=None, n_chars=20000):
     maxlen_y = numpy.max(lengths_y) + 1
     maxlen_z = numpy.max(lengths_z) + 1
 
-    x = numpy.zeros((maxlen_x, n_samples)).astype('int64')
-    y = numpy.zeros((maxlen_y, n_samples)).astype('int64')
-    z = numpy.zeros((maxlen_z, n_samples)).astype('int64')
-    x_mask = numpy.zeros((maxlen_x, n_samples)).astype('float32')
-    y_mask = numpy.zeros((maxlen_y, n_samples)).astype('float32')
-    z_mask = numpy.zeros((maxlen_z, n_samples)).astype('float32')
+    x = numpy.zeros((n_samples,MAX_LENGTH)).astype('int32')
+    y = numpy.zeros((n_samples,MAX_LENGTH)).astype('int32')
+    z = numpy.zeros((n_samples,MAX_LENGTH)).astype('int32')
+    x_mask = numpy.zeros((n_samples,MAX_LENGTH)).astype('float32')
+    y_mask = numpy.zeros((n_samples,MAX_LENGTH)).astype('float32')
+    z_mask = numpy.zeros((n_samples,MAX_LENGTH)).astype('float32')
     for idx, [s_x, s_y, s_z] in enumerate(zip(seqs_x,seqs_y,seqs_z)):
-        x[:lengths_x[idx],idx] = s_x
-        x_mask[:lengths_x[idx]+1,idx] = 1.
-        y[:lengths_y[idx],idx] = s_y
-        y_mask[:lengths_y[idx]+1,idx] = 1.
-        z[:lengths_z[idx],idx] = s_z
-        z_mask[:lengths_z[idx]+1,idx] = 1.
+        x[idx,:lengths_x[idx]] = s_x
+        x_mask[idx,:lengths_x[idx]] = 1.
+        y[idx,:lengths_y[idx]] = s_y
+        y_mask[idx,:lengths_y[idx]] = 1.
+        z[idx,:lengths_z[idx]] = s_z
+        z_mask[idx,:lengths_z[idx]] = 1.
 
-    return x, x_mask, y, y_mask, z, z_mask
+    return numpy.expand_dims(x,axis=2), x_mask, numpy.expand_dims(y,axis=2), y_mask, numpy.expand_dims(z,axis=2), z_mask
 
 def grouper(text):
     """
@@ -174,6 +176,6 @@ def build_dictionary(text):
 
     chardict = OrderedDict()
     for idx, sidx in enumerate(sorted_idx):
-        chardict[chars[sidx]] = idx+2 # 0: <eos>, 1: <unk>
+        chardict[chars[sidx]] = idx 
 
     return chardict, charcount

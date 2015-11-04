@@ -9,25 +9,27 @@ import theano.tensor as T
 import random
 import sys
 import batched_tweets
+import time
+import cPickle as pkl
 
 from collections import OrderedDict
 
 # Number of epochs
-NUM_EPOCHS = 1
+NUM_EPOCHS = 5
 # Batch size
-N_BATCH = 2
+N_BATCH = 128
 # Max sequence length
-MAX_LENGTH = 4
+MAX_LENGTH = 140
 # Number of unique characters
-N_CHAR = 5
+N_CHAR = 100
 # Dimensionality of character lookup
-CHAR_DIM = 2
+CHAR_DIM = 50
 # Initialization scale
 SCALE = 0.1
 # Dimensionality of C2W hidden states
-C2W_HDIM = 4
+C2W_HDIM = 100
 # Dimensionality of word vectors
-WDIM = 3
+WDIM = 200
 # Gap parameter
 M = 0.5
 # Learning rate
@@ -35,9 +37,17 @@ LEARNING_RATE = .001
 # Display frequency
 DISPF = 1
 # Save frequency
-SAVEF = 10
+SAVEF = 100
 # Validation set
 N_VAL = 1000
+
+def save_dictionary(worddict, wordcount, loc):
+    """
+    Save a dictionary to the specified location 
+    """
+    with open(loc, 'wb') as f:
+        pkl.dump(worddict, f)
+        pkl.dump(wordcount, f)
 
 def tnorm(tens):
     '''
@@ -83,7 +93,7 @@ def tweet2vec(tweet,mask,params):
 
     return lasagne.layers.get_output(l_c2w_source)
     
-def init_params():
+def init_params(n_chars=N_CHAR):
     '''
     Initialize all params
     '''
@@ -92,7 +102,7 @@ def init_params():
     np.random.seed(0)
 
     # lookup table
-    params['Wc'] = theano.shared(np.random.uniform(low=-SCALE, high=SCALE, size=(N_CHAR,CHAR_DIM)).astype('float32'), name='Wc')
+    params['Wc'] = theano.shared(np.random.uniform(low=-SCALE, high=SCALE, size=(n_chars,CHAR_DIM)).astype('float32'), name='Wc')
 
     # f-GRU
     params['W_c2w_f_r'] = theano.shared(np.random.uniform(low=-SCALE, high=SCALE, size=(CHAR_DIM,C2W_HDIM)).astype('float32'), name='W_c2w_f_r')
@@ -126,10 +136,27 @@ def init_params():
     
 def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 
+    print("Preparing Data...")
+
+    # Training data
+    with open(data_path,'r') as f:
+	X = f.read().splitlines()
+
+    # Build dictionary
+    chardict, charcount = batched_tweets.build_dictionary(X)
+    save_dictionary(chardict,charcount,'%s/dict.pkl' % save_path)
+    trainX = batched_tweets.grouper(X)
+    train_iter = batched_tweets.BatchedTweets(trainX, validation_size=N_VAL, batch_size=N_BATCH, maxlen=MAX_LENGTH)
+
+    # Validation set
+    t_val, tp_val, tn_val = train_iter.validation_set()
+    t_val, t_val_m, tp_val, tp_val_m, tn_val, tn_val_m = batched_tweets.prepare_data(t_val, tp_val, tn_val, chardict, maxlen=MAX_LENGTH)
+
     print("Building network...")
 
     # params
-    params = init_params()
+    n_char = len(chardict.keys())
+    params = init_params(n_chars=n_char)
 
     # Tweet variables
     tweet = T.itensor3()
@@ -166,19 +193,6 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
     cost_val = theano.function(inps,cost)
     train = theano.function(inps,cost,updates=updates)
 
-    # Training data
-    with open(data_path,'r') as f:
-	X = f.read().splitlines()
-
-    # Build dictionary
-    chardict = batched_tweets.build_dictionary(X)
-    trainX = batched_tweets.grouper(X)
-    train_iter = batched_tweets.BatchedTweets(trainX, validation_size=N_VAL, batch_size=N_BATCH, maxlen=MAX_LENGTH)
-
-    # Validation set
-    t_val, tp_val, tn_val = train_iter.validation_set()
-    t_val, t_val_m, tp_val, tp_val_m, tn_val, tn_val_m = batched_tweets.prepare_data(t_val, tp_val, tn_val, maxlen=MAX_LENGTH)
-
     # Training
     print("Training...")
     uidx = 0
@@ -191,11 +205,12 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 		n_samples +=len(x)
 		uidx += 1
 
-		x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data(x, y, z, maxlen=MAX_LENGTH)
+		x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data(x, y, z, chardict, maxlen=MAX_LENGTH)
 
 		if x==None:
 		    print("Minibatch with zero samples under maxlength.")
 		    uidx -= 1
+		    continue
 
 		ud_start = time.time()
 		curr_cost = train(x,x_m,y,y_m,z,z_m)
@@ -210,9 +225,10 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 
 		if np.mod(uidx,SAVEF) == 0:
 		    print("Saving...")
-		    args = params.keys()
-		    kwds = [v.get_value() for v in params.values()]
-		    np.savez(SAVEF,*args,**kwds)
+		    saveparams = OrderedDict()
+		    for kk,vv in params.iteritems():
+			saveparams[kk] = vv.get_value()
+		    np.savez('%s/model.npz' % save_path,**saveparams)
 		    print("Done.")
 
 	    validation_cost = cost_val(t_val,t_val_m,tp_val,tp_val_m,tn_val,tn_val_m)
@@ -223,41 +239,41 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 	pass
 
     # Test
-    print("Testing...")
-    s = np.array([[[1],[2],[3],[4]],[[1],[1],[1],[1]]],dtype=np.int32)
-    b = np.array([[[4],[3],[2],[1]],[[1],[1],[1],[1]]],dtype=np.int32)
-    a = np.array([[[0],[2],[4],[4]],[[0],[0],[0],[0]]],dtype=np.int32)
-    s_m = np.array([[0,1,0,1],[1,1,1,0]],dtype=np.float32)
-    b_m = np.array([[0,0,0,0],[1,1,0,0]],dtype=np.float32)
-    a_m = np.array([[0,1,1,0],[1,1,1,1]],dtype=np.float32)
-    print "Input - "
-    print s
-    print b
-    print a
-    emb = t2v(s,s_m,b,b_m,a,a_m)
-    d = dist(s,s_m,b,b_m,a,a_m)
-    ll = l(s,s_m,b,b_m,a,a_m)
-    c2 = cost_val(s,s_m,b,b_m,a,a_m)
-    c1 = train(s,s_m,b,b_m,a,a_m)
-    print "Output - "
-    print "Embeddings"
-    print str(emb[0])
-    print str(emb[1])
-    print str(emb[2])
-    print "Distances"
-    print str(d[0])
-    print str(d[1])
-    print "Loss"
-    print str(ll)
-    print "Params"
-    print "source - "
-    print params
-    print "Training cost - "
-    print str(c1)
-    print "Cost function cost - "
-    print str(c2)
-    print "updates - "
-    print str(updates)
+    #print("Testing...")
+    #s = np.array([[[1],[2],[3],[4]],[[1],[1],[1],[1]]],dtype=np.int32)
+    #b = np.array([[[4],[3],[2],[1]],[[1],[1],[1],[1]]],dtype=np.int32)
+    #a = np.array([[[0],[2],[4],[4]],[[0],[0],[0],[0]]],dtype=np.int32)
+    #s_m = np.array([[0,1,0,1],[1,1,1,0]],dtype=np.float32)
+    #b_m = np.array([[0,0,0,0],[1,1,0,0]],dtype=np.float32)
+    #a_m = np.array([[0,1,1,0],[1,1,1,1]],dtype=np.float32)
+    #print "Input - "
+    #print s
+    #print b
+    #print a
+    #emb = t2v(s,s_m,b,b_m,a,a_m)
+    #d = dist(s,s_m,b,b_m,a,a_m)
+    #ll = l(s,s_m,b,b_m,a,a_m)
+    #c2 = cost_val(s,s_m,b,b_m,a,a_m)
+    #c1 = train(s,s_m,b,b_m,a,a_m)
+    #print "Output - "
+    #print "Embeddings"
+    #print str(emb[0])
+    #print str(emb[1])
+    #print str(emb[2])
+    #print "Distances"
+    #print str(d[0])
+    #print str(d[1])
+    #print "Loss"
+    #print str(ll)
+    #print "Params"
+    #print "source - "
+    #print params
+    #print "Training cost - "
+    #print str(c1)
+    #print "Cost function cost - "
+    #print str(c2)
+    #print "updates - "
+    #print str(updates)
 
 if __name__ == '__main__':
-    main(sys.argv[0],sys.argv[1],sys.argv[2])
+    main(sys.argv[1],sys.argv[2])
