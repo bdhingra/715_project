@@ -1,5 +1,6 @@
 import json
 import re
+import random
 
 regex_str = [
     r'<[^>]+>', # HTML tags
@@ -41,37 +42,86 @@ metadata_list = [u'id', u'coordinates']
 it = 0
 with open('tweet_text_en.txt', 'w') as tweet_text:
     with open('tweet_metadata_en.json', 'w') as metadata:
-	with open('tweets.2014-09-30T22_42_47') as f:
-	    for line in f:
-		it = it + 1
-		if it % 1000 == 0:
-		    print 'iteration %d' % it
+    	with open('tweet_sample.txt') as f:
+			lines = f.read().splitlines()
+			hashtagMap = {}
+			lines1 = lines
+			print(len(lines))
+			for line in lines1:
+				data = json.loads(line)
+				if data.get(u'delete'):
+					lines.remove(line)
+				else:
+					if not data[u'user'][u'lang'] == 'en':
+						lines.remove(line)
+					else: 
+						if(data[u'entities'][u'hashtags'] == []):
+					 		lines.remove(line)
+						else:
+							for hashtag in data[u'entities'][u'hashtags']:
+								if hashtag[u'text'] in hashtagMap.keys():
+									hashtagMap[hashtag[u'text']].append(data[u'text'])
+								else:
+									hashtagMap[hashtag[u'text']] = [data[u'text']]
+			lines2 = lines
+			print(len(lines))
+			for line in lines2:
+				data = json.loads(line)
+				if(not data.get(u'entities')):
+					lines.remove(line)
+				else:
+					for hashtag in data[u'entities'][u'hashtags']:
+						if not hashtagMap.get(hashtag[u'text']):
+							if(line in lines):
+								lines.remove(line)
+						elif len(hashtagMap[hashtag[u'text']]) == 1:
+							if(line in lines):
+								lines.remove(line)
 
-		data = json.loads(line)
-		if u'text' in data:
-		    if data[u'lang'] != 'en':
-			continue
-		    text = data[u'text']
+			it = it + 1
+			if it % 1000 == 0:
+			    print 'iteration %d' % it
 
-		    # extract list of hashtags
-		    hashtags = set([re.sub(r"#+", "#", k) for k in set([re.sub(r"(\W+)$", "", j, flags = re.UNICODE) for j in set([i for i in text.split() if i.startswith("#")])])])
-		    
+			print(hashtagMap)
+			print(len(lines))
+			print(len(hashtagMap))
+			for line in lines:
+				data = json.loads(line)
+				text = data[u'text']
 
-		    # insert whitespace around chains of non-alphanumeric characters
-		    #tokenized = re.sub(r'([^a-zA-Z\d\s:]+)', r' \1 ', text)
-		    
-		    # remove duplicate whitespace
-		    #tokenized = re.sub(r' +', ' ', tokenized)
+				hashtags_metadata = set([re.sub(r"#+", "#", k) for k in set([re.sub(r"(\W+)$", "", j, flags = re.UNICODE) for j in set([i for i in text.split() if i.startswith("#")])])])
 
-		    # write out tweet text
-		    line_text = preprocess(text) + '\n'
-		    tweet_text.write(line_text.encode('utf8'))
 
-		    # write out metadata
-		    metadata_dict = {k:v for (k,v) in data.iteritems() if k in metadata_list}
-		    metadata_dict[u'text'] = line_text.encode('utf8')
-		    metadata_dict[u'user_id'] = data[u'user'][u'id']
-		    metadata_dict[u'hashtags'] = "|".join(hashtags).encode('utf8')
-		    
-		    json.dump(metadata_dict, metadata)
-		    metadata.write('\n')
+				line_text = preprocess(text) + '\n'
+				if data[u'entities'][u'hashtags']:
+					print('here')
+					test_hashtag = random.choice(data[u'entities'][u'hashtags'])
+					if hashtagMap.get(test_hashtag[u'text']):
+						tweet_text.write(line_text.encode('utf8'))
+						text_pos = random.choice(hashtagMap[test_hashtag[u'text']])
+						loop_bool = False
+
+						while not loop_bool:
+							neg_hashtag = random.choice(hashtagMap.keys())
+							if not(neg_hashtag == test_hashtag[u'text']):
+								loop_bool = True
+								text_neg = random.choice(hashtagMap[neg_hashtag])
+							
+						pos_line_text = preprocess(text_pos) + '\n'
+						tweet_text.write(pos_line_text.encode('utf8'))
+						neg_line_text = preprocess(text_neg) + '\n'
+						tweet_text.write(neg_line_text.encode('utf8'))
+
+						# write out metadata
+						metadata_dict = {k:v for (k,v) in data.iteritems() if k in metadata_list}
+						metadata_dict[u'text'] = line_text.encode('utf8')
+						metadata_dict[u'user_id'] = data[u'user'][u'id']
+						metadata_dict[u'hashtags'] = "|".join(hashtags_metadata).encode('utf8')
+
+						json.dump(metadata_dict, metadata)
+						metadata.write('\n')
+
+	
+
+
+
