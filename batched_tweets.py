@@ -176,6 +176,6 @@ def build_dictionary(text):
 
     chardict = OrderedDict()
     for idx, sidx in enumerate(sorted_idx):
-        chardict[chars[sidx]] = idx 
+        chardict[chars[sidx]] = idx + 1
 
     return chardict, charcount
