@@ -71,7 +71,7 @@ with open('data/tweet_processed_text_en.txt', 'w') as tweet_processed_text, open
 			for hashtag in data[u'entities'][u'hashtags']:
 				hashtags_text.append(hashtag[u'text'])
 
-			hashtag_f.write(json.dumps(hashtags_text) + '\n')
+			
 
 			# extract list of hashtags
 			hashtags = set([re.sub(r"#+", "#", k) for k in set([re.sub(r"(\W+)$", "", j, flags = re.UNICODE) for j in set([i for i in text.split() if i.startswith("#")])])])
@@ -80,6 +80,9 @@ with open('data/tweet_processed_text_en.txt', 'w') as tweet_processed_text, open
 			line_text = preprocess(text) + '\n'
                         if line_text=='\n':
                             continue
+                        
+                        
+			hashtag_f.write(json.dumps(hashtags_text) + '\n')
 			tweet_processed_text.write(line_text.encode('utf8'))
 
 			# write out metadata
