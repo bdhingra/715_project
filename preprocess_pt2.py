@@ -9,7 +9,7 @@ def getline(desired_line_number):
     return ''
 
 
-with open('data/tweet_hashtags.txt') as hashtag_f, io.open('data/triplets.txt', 'w', encoding='utf8') as triplets, open('data/triplets_hashtags.txt','w') as trip_hash:
+with open('data/tweet_hashtags.txt') as hashtag_f, io.open('data/triplets.txt', 'w', encoding='utf8') as triplets, io.open('data/triplets_hashtags.txt','w', encoding='utf-8') as trip_hash:
 
 	hashtag_dict = {}
 	i = 1
@@ -68,6 +68,6 @@ with open('data/tweet_hashtags.txt') as hashtag_f, io.open('data/triplets.txt', 
 			
 			#triplets_array.append(getline(neg_index).encode('utf-8').strip('\n'))
 			triplets_array.append(getline(neg_index).strip('\n'))
-                        trip_hash.write(' '.join(triplets_hash) + '\n')
+                        trip_hash.write(unicode(json.dumps(triplets_hash, ensure_ascii=False)) + '\n')
 			triplets.write(unicode(json.dumps(triplets_array, ensure_ascii=False)) + '\n')
 

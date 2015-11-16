@@ -1,1 +1,1 @@
-python char.py data/en/tweet_text_en.txt model/
+python char.py data/randomized_triplets.txt model/

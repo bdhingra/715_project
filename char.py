@@ -15,9 +15,9 @@ import cPickle as pkl
 from collections import OrderedDict
 
 # Number of epochs
-NUM_EPOCHS = 5
+NUM_EPOCHS = 50
 # Batch size
-N_BATCH = 128
+N_BATCH = 512
 # Max sequence length
 MAX_LENGTH = 140
 # Number of unique characters
@@ -155,7 +155,7 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
     print("Building network...")
 
     # params
-    n_char = len(chardict.keys())
+    n_char = len(chardict.keys()) + 1
     params = init_params(n_chars=n_char)
 
     # Tweet variables
