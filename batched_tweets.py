@@ -1,8 +1,7 @@
 import numpy
 import copy
 from collections import OrderedDict
-
-MAX_LENGTH = 140
+from settings import MAX_LENGTH, N_CHAR
 
 class BatchedTweets():
 
@@ -81,7 +80,7 @@ class BatchedTweets():
     def __iter__(self):
         return self
 
-def prepare_data(seqs_x, seqs_y, seqs_z, chardict, maxlen=MAX_LENGTH, n_chars=20000):
+def prepare_data(seqs_x, seqs_y, seqs_z, chardict, maxlen=MAX_LENGTH, n_chars=N_CHAR):
     """
     Put the data into format useable by the model
     """
@@ -179,3 +178,12 @@ def build_dictionary(text):
         chardict[chars[sidx]] = idx + 1
 
     return chardict, charcount
+
+def save_dictionary(worddict, wordcount, loc):
+    """
+    Save a dictionary to the specified location 
+    """
+    with open(loc, 'wb') as f:
+        pkl.dump(worddict, f)
+        pkl.dump(wordcount, f)
+
