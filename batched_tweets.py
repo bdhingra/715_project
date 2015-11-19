@@ -1,5 +1,6 @@
 import numpy
 import copy
+import cPickle as pkl
 from collections import OrderedDict
 from settings import MAX_LENGTH, N_CHAR
 

@@ -1,28 +1,28 @@
 # Set global params here
 
 # Number of epochs
-NUM_EPOCHS = 50
+NUM_EPOCHS = 20
 # Batch size
-N_BATCH = 512
+N_BATCH = 128
 # Max sequence length
-MAX_LENGTH = 140
+MAX_LENGTH = 145
 # Number of unique characters
-N_CHAR = 100
+N_CHAR = 1000
 # Dimensionality of character lookup
-CHAR_DIM = 50
+CHAR_DIM = 100
 # Initialization scale
 SCALE = 0.1
 # Dimensionality of C2W hidden states
-C2W_HDIM = 100
+C2W_HDIM = 150
 # Dimensionality of word vectors
-WDIM = 200
+WDIM = 100
 # Gap parameter
-M = 0.5
+M = 1
 # Learning rate
-LEARNING_RATE = .001
+LEARNING_RATE = .005
 # Display frequency
 DISPF = 1
 # Save frequency
 SAVEF = 100
 # Validation set
-N_VAL = 1000
+N_VAL = 50

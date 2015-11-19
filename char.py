@@ -32,13 +32,14 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 
     # Build dictionary
     chardict, charcount = batched_tweets.build_dictionary(X)
+    n_char = len(chardict.keys()) + 1
     batched_tweets.save_dictionary(chardict,charcount,'%s/dict.pkl' % save_path)
     trainX = batched_tweets.grouper(X)
     train_iter = batched_tweets.BatchedTweets(trainX, validation_size=N_VAL, batch_size=N_BATCH, maxlen=MAX_LENGTH)
 
     # Validation set
     t_val, tp_val, tn_val = train_iter.validation_set()
-    t_val, t_val_m, tp_val, tp_val_m, tn_val, tn_val_m = batched_tweets.prepare_data(t_val, tp_val, tn_val, chardict, maxlen=MAX_LENGTH)
+    t_val, t_val_m, tp_val, tp_val_m, tn_val, tn_val_m = batched_tweets.prepare_data(t_val, tp_val, tn_val, chardict, maxlen=MAX_LENGTH,n_chars=n_char)
 
     print("Building network...")
 
@@ -66,7 +67,7 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
     D2 = 1 - T.batched_dot(emb_t, emb_tn)/(tnorm(emb_t)*tnorm(emb_tn))
     gap = D1-D2+M
     loss = gap*(gap>0)
-    cost = T.sum(loss)
+    cost = T.mean(loss)
 
     # params and updates
     print("Computing updates...")
@@ -87,13 +88,14 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
     try:
 	for epoch in range(num_epochs):
 	    n_samples = 0
+            train_cost = 0.
 	    print("Epoch {}".format(epoch))
 
 	    for x,y,z in train_iter:
 		n_samples +=len(x)
 		uidx += 1
 
-		x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data(x, y, z, chardict, maxlen=MAX_LENGTH)
+		x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data(x, y, z, chardict, maxlen=MAX_LENGTH, n_chars=n_char)
 
 		if x==None:
 		    print("Minibatch with zero samples under maxlength.")
@@ -103,6 +105,7 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 		ud_start = time.time()
 		curr_cost = train(x,x_m,y,y_m,z,z_m)
 		ud = time.time() - ud_start
+                train_cost += curr_cost*len(x)
 
 		if np.isnan(curr_cost) or np.isinf(curr_cost):
 		    print("Nan detected.")
@@ -120,48 +123,12 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 		    print("Done.")
 
 	    validation_cost = cost_val(t_val,t_val_m,tp_val,tp_val_m,tn_val,tn_val_m)
+            print("Epoch {} Training Cost {}".format(epoch, train_cost/n_samples))
 	    print("Epoch {} Validation Cost {}".format(epoch, validation_cost))
 	    print("Seen {} samples.".format(n_samples))
 
     except KeyboardInterrupt:
 	pass
-
-    # Test
-    #print("Testing...")
-    #s = np.array([[[1],[2],[3],[4]],[[1],[1],[1],[1]]],dtype=np.int32)
-    #b = np.array([[[4],[3],[2],[1]],[[1],[1],[1],[1]]],dtype=np.int32)
-    #a = np.array([[[0],[2],[4],[4]],[[0],[0],[0],[0]]],dtype=np.int32)
-    #s_m = np.array([[0,1,0,1],[1,1,1,0]],dtype=np.float32)
-    #b_m = np.array([[0,0,0,0],[1,1,0,0]],dtype=np.float32)
-    #a_m = np.array([[0,1,1,0],[1,1,1,1]],dtype=np.float32)
-    #print "Input - "
-    #print s
-    #print b
-    #print a
-    #emb = t2v(s,s_m,b,b_m,a,a_m)
-    #d = dist(s,s_m,b,b_m,a,a_m)
-    #ll = l(s,s_m,b,b_m,a,a_m)
-    #c2 = cost_val(s,s_m,b,b_m,a,a_m)
-    #c1 = train(s,s_m,b,b_m,a,a_m)
-    #print "Output - "
-    #print "Embeddings"
-    #print str(emb[0])
-    #print str(emb[1])
-    #print str(emb[2])
-    #print "Distances"
-    #print str(d[0])
-    #print str(d[1])
-    #print "Loss"
-    #print str(ll)
-    #print "Params"
-    #print "source - "
-    #print params
-    #print "Training cost - "
-    #print str(c1)
-    #print "Cost function cost - "
-    #print str(c2)
-    #print "updates - "
-    #print str(updates)
 
 if __name__ == '__main__':
     main(sys.argv[1],sys.argv[2])

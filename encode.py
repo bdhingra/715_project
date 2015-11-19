@@ -18,7 +18,7 @@ from model import tweet2vec, load_params
 
 class Batch():
     
-    def __init__(self, data, batch_size=2, maxlen=MAX_LENGTH):
+    def __init__(self, data, batch_size=512, maxlen=MAX_LENGTH):
         self.batch_size = batch_size
         self.data = data
         self.maxlen = maxlen
@@ -75,22 +75,24 @@ def prepare_data(seqs_x, chardict, n_chars=N_CHAR):
     """
     Put the data into format useable by the model
     """
+    # remove never before seen characters and convert to index
     seqsX = []
     for cc in seqs_x:
-        seqsX.append([chardict[c] if chardict[c] < n_chars else 0 for c in list(cc)])
+        ccf = [c for c in list(cc) if c in chardict]
+        seqsX.append([chardict[c] if chardict[c] < n_chars else 0 for c in ccf])
     seqs_x = seqsX
 
     lengths_x = [len(s) for s in seqs_x]
 
     n_samples = len(seqs_x)
 
-    x = numpy.zeros((n_samples,MAX_LENGTH)).astype('int32')
-    x_mask = numpy.zeros((n_samples,MAX_LENGTH)).astype('float32')
+    x = np.zeros((n_samples,MAX_LENGTH)).astype('int32')
+    x_mask = np.zeros((n_samples,MAX_LENGTH)).astype('float32')
     for idx, s_x in enumerate(seqs_x):
         x[idx,:lengths_x[idx]] = s_x
         x_mask[idx,:lengths_x[idx]] = 1.
 
-    return numpy.expand_dims(x,axis=2), x_mask
+    return np.expand_dims(x,axis=2), x_mask
 
 def main(data_path, model_path, save_path):
 
@@ -125,10 +127,9 @@ def main(data_path, model_path, save_path):
     # Encode
     print("Encoding data...")
     features = np.zeros((len(X),WDIM), dtype='float32')
-    out = []
     it = 0
     for x,i in batches:
-        if it % 10 == 0:
+        if it % 100 == 0:
             print("Minibatch {}".format(it))
         it += 1
 
@@ -136,12 +137,10 @@ def main(data_path, model_path, save_path):
         ff = f_enc(xp, x_mask)
         for ind, idx in enumerate(i):
             features[idx] = ff[ind]
-            out.append(x[ind])
 
     # Save
     with open(save_path, 'w') as o:
         np.save(o, features)
-    with open('data/test_out.txt
 
 if __name__ == '__main__':
     main(sys.argv[1],sys.argv[2],sys.argv[3])
