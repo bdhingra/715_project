@@ -13,7 +13,7 @@ import time
 import cPickle as pkl
 
 from collections import OrderedDict
-from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL
+from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG
 from model import tweet2vec, init_params
 
 def tnorm(tens):
@@ -112,7 +112,7 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 		    return
 
 		if np.mod(uidx, DISPF) == 0:
-		    print("Epoch {} Update {} Cost {} Time {}".format(epoch,uidx,curr_cost,ud))
+		    print("Epoch {} Update {} Cost {} Time {} Samples {}".format(epoch,uidx,curr_cost,ud,len(x)))
 
 		if np.mod(uidx,SAVEF) == 0:
 		    print("Saving...")
@@ -126,6 +126,30 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
             print("Epoch {} Training Cost {}".format(epoch, train_cost/n_samples))
 	    print("Epoch {} Validation Cost {}".format(epoch, validation_cost))
 	    print("Seen {} samples.".format(n_samples))
+            
+            if DEBUG:
+                # store embeddings and data
+                features = np.zeros((len(train_iter.data[0]),3*WDIM))
+                distances = np.zeros((len(train_iter.data[0]),2))
+                for idx, triple in enumerate(zip(train_iter.data[0],train_iter.data[1],train_iter.data[2])):
+                    x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data([triple[0]], [triple[1]], [triple[2]], chardict, maxlen=MAX_LENGTH, n_chars=n_char)
+                    if x==None:
+                        continue
+                    emb1, emb2, emb3 = t2v(x,x_m,y,y_m,z,z_m)
+                    emb1 = np.reshape(emb1, (WDIM))
+                    emb2 = np.reshape(emb2, (WDIM))
+                    emb3 = np.reshape(emb3, (WDIM))
+                    features[idx,:] = np.concatenate((emb1,emb2,emb3),axis=0)
+                    distances[idx,0] = 1-np.dot(emb1,emb2)/(np.linalg.norm(emb1)*np.linalg.norm(emb2))
+                    distances[idx,1] = 1-np.dot(emb1,emb3)/(np.linalg.norm(emb1)*np.linalg.norm(emb3))
+                with open('debug/feat_%d.npy'%epoch,'w') as df:
+                    np.save(df,features)
+                with open('debug/dist_%d.npy'%epoch,'w') as ds:
+                    np.save(ds,distances)
+        if DEBUG:
+            with open('debug/data.txt','w') as dd:
+                for triple in zip(train_iter.data[0],train_iter.data[1],train_iter.data[2]):
+                    dd.write('%s\t%s\t%s\n' % (triple[0],triple[1],triple[2]))
 
     except KeyboardInterrupt:
 	pass

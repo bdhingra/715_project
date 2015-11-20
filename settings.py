@@ -21,8 +21,10 @@ M = 1
 # Learning rate
 LEARNING_RATE = .005
 # Display frequency
-DISPF = 1
+DISPF = 10
 # Save frequency
 SAVEF = 100
 # Validation set
-N_VAL = 50
+N_VAL = 1000
+# Debug mode
+DEBUG = False

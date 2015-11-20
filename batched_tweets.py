@@ -34,9 +34,11 @@ class BatchedTweets():
         # indices of unique lengths
         self.len_indices = dict()
         self.len_counts = dict()
+        self.total = 0
         for ll in self.len_unique:
             self.len_indices[ll] = numpy.where(self.lengths == ll)[0]
             self.len_counts[ll] = len(self.len_indices[ll])
+            self.total += len(self.len_indices[ll])
 
         # current counter
         self.len_curr_counts = copy.copy(self.len_counts)
