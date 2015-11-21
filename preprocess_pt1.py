@@ -2,7 +2,10 @@ import json
 import re
 import sys
 import os
-path = os.getcwd() + '/tweets/'
+import gzip
+
+path = sys.argv[1]
+out_path = sys.argv[2]
 
 regex_str = [
     r'<[^>]+>', # HTML tags
@@ -55,9 +58,9 @@ def preprocess(s, lowercase=True):
 metadata_list = [u'id', u'coordinates']
 
 it = 0
-with open('data/3/tweet_processed_text_en.txt', 'w') as tweet_processed_text, open('data/3/tweet_metadata_en.json', 'w') as metadata, open('data/3/tweet_hashtags.txt', 'w') as hashtag_f:
+with open(out_path+'/tweet_processed_text_en.txt', 'w') as tweet_processed_text, open(out_path+'/tweet_metadata_en.json', 'w') as metadata, open(out_path+'/tweet_hashtags.txt', 'w') as hashtag_f:
 	for fname in os.listdir(path):
-                f = open(path+fname,'r')
+                f = gzip.open(path+fname,'r')
 		for line in f:
 			it = it + 1
 			if it % 1000 == 0:
