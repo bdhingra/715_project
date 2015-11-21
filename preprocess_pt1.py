@@ -1,6 +1,7 @@
 import json
 import re
 import sys
+import os
 path = os.getcwd() + '/tweets/'
 
 regex_str = [
@@ -54,8 +55,9 @@ def preprocess(s, lowercase=True):
 metadata_list = [u'id', u'coordinates']
 
 it = 0
-with open('data/tweet_processed_text_en.txt', 'w') as tweet_processed_text, open('data/tweet_metadata_en.json', 'w') as metadata, open('data/tweet_hashtags.txt', 'w') as hashtag_f:
-	for f in os.listdir(path):
+with open('data/3/tweet_processed_text_en.txt', 'w') as tweet_processed_text, open('data/3/tweet_metadata_en.json', 'w') as metadata, open('data/3/tweet_hashtags.txt', 'w') as hashtag_f:
+	for fname in os.listdir(path):
+                f = open(path+fname,'r')
 		for line in f:
 			it = it + 1
 			if it % 1000 == 0:

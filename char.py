@@ -123,9 +123,11 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 		    print("Done.")
 
 	    validation_cost = cost_val(t_val,t_val_m,tp_val,tp_val_m,tn_val,tn_val_m)
-            print("Epoch {} Training Cost {}".format(epoch, train_cost/n_samples))
-	    print("Epoch {} Validation Cost {}".format(epoch, validation_cost))
+            print("Epoch {} Training Cost {} Validation Cost {}".format(epoch, train_cost/n_samples, validation_cost))
 	    print("Seen {} samples.".format(n_samples))
+
+            for kk,vv in params.iteritems():
+                print("Param {} Epoch {} Max {} Min {}".format(kk, epoch, np.max(vv.get_value()), np.min(vv.get_value())))
             
             if DEBUG:
                 # store embeddings and data

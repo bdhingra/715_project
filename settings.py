@@ -9,17 +9,17 @@ MAX_LENGTH = 145
 # Number of unique characters
 N_CHAR = 1000
 # Dimensionality of character lookup
-CHAR_DIM = 100
+CHAR_DIM = 50
 # Initialization scale
 SCALE = 0.1
 # Dimensionality of C2W hidden states
-C2W_HDIM = 150
+C2W_HDIM = 75
 # Dimensionality of word vectors
-WDIM = 100
+WDIM = 50
 # Gap parameter
 M = 1
 # Learning rate
-LEARNING_RATE = .005
+LEARNING_RATE = .01
 # Display frequency
 DISPF = 10
 # Save frequency
