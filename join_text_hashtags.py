@@ -21,5 +21,5 @@ with io.open(textFile,'r',encoding='utf-8') as text, io.open(hashFile,'r',encodi
             out.write('\t%d\t%s' % (tid,t))
         else:
             for ht in h:
-                out.write('%s\t%d\t%s' % (ht,tid,t))
+                out.write('%s\t%d\t%s' % (ht.lower(),tid,t))
         tid += 1
