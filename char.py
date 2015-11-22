@@ -27,18 +27,17 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
     print("Preparing Data...")
 
     # Training data
-    with open(data_path,'r') as f:
-	X = f.read().splitlines()
+    trainX = batched_tweets.create_pairs(data_path)
 
     # Build dictionary
-    chardict, charcount = batched_tweets.build_dictionary(X)
+    chardict, charcount = batched_tweets.build_dictionary(trainX[0] + trainX[1])
     n_char = len(chardict.keys()) + 1
     batched_tweets.save_dictionary(chardict,charcount,'%s/dict.pkl' % save_path)
-    trainX = batched_tweets.grouper(X)
     train_iter = batched_tweets.BatchedTweets(trainX, validation_size=N_VAL, batch_size=N_BATCH, maxlen=MAX_LENGTH)
 
     # Validation set
-    t_val, tp_val, tn_val = train_iter.validation_set()
+    t_val, tp_val, tn_tags = train_iter.validation_set()
+    t_val, tp_val, tn_val = batched_tweets.assign_third(t_val, tp_val, tn_tags)
     t_val, t_val_m, tp_val, tp_val_m, tn_val, tn_val_m = batched_tweets.prepare_data(t_val, tp_val, tn_val, chardict, maxlen=MAX_LENGTH,n_chars=n_char)
 
     print("Building network...")
@@ -92,6 +91,10 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 	    print("Epoch {}".format(epoch))
 
 	    for x,y,z in train_iter:
+                if not x:
+                    print("Minibatch with no valid triples")
+                    continue
+
 		n_samples +=len(x)
 		uidx += 1
 

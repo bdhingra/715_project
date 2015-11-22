@@ -2,7 +2,12 @@ import numpy
 import copy
 import cPickle as pkl
 from collections import OrderedDict
-from settings import MAX_LENGTH, N_CHAR
+from settings import MAX_LENGTH, N_CHAR, MIN_LEV_DIST
+import json
+import itertools
+import random
+import io
+import distance
 
 class BatchedTweets():
 
@@ -20,12 +25,12 @@ class BatchedTweets():
         return self.validation
 
     def prepare(self):
-        self.caps = self.data[0]
-        self.feats = self.data[1]
-        self.feats2 = self.data[2]
+        self.first = self.data[0]
+        self.second = self.data[1]
+        self.tags = self.data[2]
 
         # find the unique lengths
-        self.lengths = [len(list(cc)) for cc in self.caps]
+        self.lengths = [len(list(cc)) for cc in self.first]
         self.len_unique = numpy.unique(self.lengths)
         # remove any overly long sentences
         if self.maxlen:
@@ -73,12 +78,12 @@ class BatchedTweets():
         self.len_indices_pos[self.len_unique[self.len_idx]] += curr_batch_size
         self.len_curr_counts[self.len_unique[self.len_idx]] -= curr_batch_size
 
-        # 'feats' corresponds to the after and before sentences
-        caps = [self.caps[ii] for ii in curr_indices]
-        feats = [self.feats[ii] for ii in curr_indices]
-        feats2 = [self.feats2[ii] for ii in curr_indices]
+        first = [self.first[ii] for ii in curr_indices]
+        second = [self.second[ii] for ii in curr_indices]
+        tags = [self.tags[ii] for ii in curr_indices]
+        (first, second, third) = assign_third(first, second, tags)
 
-        return caps, feats, feats2
+        return first, second, third
 
     def __iter__(self):
         return self
@@ -150,16 +155,6 @@ def prepare_data(seqs_x, seqs_y, seqs_z, chardict, maxlen=MAX_LENGTH, n_chars=N_
 
     return numpy.expand_dims(x,axis=2), x_mask, numpy.expand_dims(y,axis=2), y_mask, numpy.expand_dims(z,axis=2), z_mask
 
-def grouper(text):
-    """
-    Group tweets into triplets
-    """
-    first = text[::3]
-    second = text[1::3]
-    third = text[2::3]
-    X = (first, second, third)
-    return X
-
 def build_dictionary(text):
     """
     Build a character dictionary
@@ -190,3 +185,85 @@ def save_dictionary(worddict, wordcount, loc):
         pkl.dump(worddict, f)
         pkl.dump(wordcount, f)
 
+def create_pairs(data_path):
+    tags = []
+    first = []
+    second = []
+    with io.open(data_path,'r', encoding='utf-8') as f:
+        for line in f:
+            j = json.loads(line)
+            for pair in itertools.combinations(j[1],2):
+
+                # tags is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
+                tags.append((j[0], pair[0][0], pair[1][0]))
+                first.append(pair[0][1])
+                second.append(pair[1][1])
+
+    return (first, second, tags)
+
+def assign_third(first, second, tags):
+    third = []
+    valid = []
+
+    # generate dict of <tweets: (tweet text, [hashtag list])>
+    tweet_dict = {}
+    for i, tag in enumerate(tags):
+
+        # tag is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
+        tweet = tag[1]   
+        if not tweet in tweet_dict:
+            tweet_dict[tweet] = (first[i],[tag[0]])
+        else:
+            if tag[0] not in tweet_dict[tweet][1]:
+                tweet_dict[tweet][1].append(tag[0])
+        
+        tweet = tag[2]
+        if not tweet in tweet_dict:
+            tweet_dict[tweet] = (second[i],[tag[0]])
+        else:
+            if tag[0] not in tweet_dict[tweet][1]:
+                tweet_dict[tweet][1].append(tag[0])
+
+    # create universe of valid third tweets and randomly sample
+    for i, tag in enumerate(tags):
+        universe = []
+        first_id = tag[1]
+        second_id = tag[2]
+
+        # create combined list of hashtags from first & second tweets
+        all_tags = tweet_dict[first_id][1]+tweet_dict[second_id][1]
+        
+        # check all tweets in batch for validity
+        for tweet in tweet_dict:
+            similar = False
+            for orig_tag in set(all_tags):
+                for new_tag in set(tweet_dict[tweet][1]):
+
+                    # if levenshtein distance is too small between any hashtags,
+                    # third tweet is not valid
+                    if distance.levenshtein(orig_tag, new_tag) < MIN_LEV_DIST:
+                        similar = True
+                        break
+
+            if not similar:
+                universe.append(tweet_dict[tweet][0])
+        
+        # if there are any valid third tweets, randomly choose one
+        if universe:
+            third.append(random.choice(universe))
+            valid.append(True)
+        else:
+            third.append("")
+            valid.append(False)
+
+    # return only pairs where a valid third tweet was found
+    first_out = []
+    second_out = []
+    third_out = []
+    for i, check in enumerate(valid):
+        if check:
+            first_out.append(first[i])
+            second_out.append(second[i])
+            third_out.append(third[i])
+
+    return (first_out, second_out, third_out)
