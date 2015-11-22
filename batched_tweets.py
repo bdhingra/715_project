@@ -2,7 +2,7 @@ import numpy
 import copy
 import cPickle as pkl
 from collections import OrderedDict
-from settings import MAX_LENGTH, N_CHAR
+from settings import MAX_LENGTH, N_CHAR, MIN_LEV_DIST
 import json
 import itertools
 import random
@@ -189,14 +189,15 @@ def create_pairs(data_path):
     tags = []
     first = []
     second = []
-    with open(data_path,'r') as f:
-        for line in f.readlines():
+    with io.open(data_path,'r', encoding='utf-8') as f:
+        for line in f:
             j = json.loads(line)
-            if j[0] != "" and len(j[1]) > 1:
-                for pair in itertools.combinations(j[1],2):
-                    tags.append((j[0], pair[0][0], pair[1][0]))
-                    first.append(pair[0][1])
-                    second.append(pair[1][1])
+            for pair in itertools.combinations(j[1],2):
+
+                # tags is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
+                tags.append((j[0], pair[0][0], pair[1][0]))
+                first.append(pair[0][1])
+                second.append(pair[1][1])
 
     return (first, second, tags)
 
@@ -207,6 +208,8 @@ def assign_third(first, second, tags):
     # generate dict of <tweets: (tweet text, [hashtag list])>
     tweet_dict = {}
     for i, tag in enumerate(tags):
+
+        # tag is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
         tweet = tag[1]   
         if not tweet in tweet_dict:
             tweet_dict[tweet] = (first[i],[tag[0]])
@@ -238,7 +241,7 @@ def assign_third(first, second, tags):
 
                     # if levenshtein distance is too small between any hashtags,
                     # third tweet is not valid
-                    if distance.levenshtein(orig_tag, new_tag) < 5:
+                    if distance.levenshtein(orig_tag, new_tag) < MIN_LEV_DIST:
                         similar = True
                         break
 

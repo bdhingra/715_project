@@ -10,6 +10,8 @@ MAX_LENGTH = 145
 N_CHAR = 1000
 # Dimensionality of character lookup
 CHAR_DIM = 50
+# Minimum levenshtein distance between t_pos hashtags and t_neg hashtags
+MIN_LEV_DIST = 5
 # Initialization scale
 SCALE = 0.1
 # Dimensionality of C2W hidden states
