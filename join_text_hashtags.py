@@ -1,6 +1,9 @@
 import json
 import sys
 import io
+import re
+
+MIN_CHAR = 5
 
 textFile = sys.argv[1]
 hashFile = sys.argv[2]
@@ -16,10 +19,12 @@ with io.open(textFile,'r',encoding='utf-8') as text, io.open(hashFile,'r',encodi
             h = json.loads(tag.readline())
         except:
             continue
+	
+	if len(t) <= MIN_CHAR+1:
+		continue
 
-        if not h:
-            out.write('\t%d\t%s' % (tid,t))
-        else:
-            for ht in h:
-                out.write('%s\t%d\t%s' % (ht.lower(),tid,t))
-        tid += 1
+	if h:
+		for ht in h:
+			hasht = re.sub(r'^(.+?)\1+$', r'\1', ht.lower())
+			out.write('%s\t%d\t%s' % (hasht,tid,t))
+		tid += 1
