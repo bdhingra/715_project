@@ -21,7 +21,7 @@ WDIM = 50
 # Gap parameter
 M = 1
 # Learning rate
-LEARNING_RATE = .01
+LEARNING_RATE = .005
 # Display frequency
 DISPF = 10
 # Save frequency

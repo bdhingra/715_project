@@ -57,19 +57,21 @@ def preprocess(s, lowercase=True):
 
 metadata_list = [u'id', u'coordinates']
 
-it = 0
 with open(out_path+'/tweet_processed_text_en.txt', 'w') as tweet_processed_text, open(out_path+'/tweet_metadata_en.json', 'w') as metadata, open(out_path+'/tweet_hashtags.txt', 'w') as hashtag_f:
 	for fname in os.listdir(path):
+		it = 0
                 f = gzip.open(path+fname,'r')
+		print fname
 		for line in f:
 			it = it + 1
-			if it % 1000 == 0:
-				print 'iteration %d' % it
+			if it % 350000 == 0:
+				print("Iteration {}".format(it))
 	
 	                try:
-	                    data = json.loads(line)
+	                	data = json.loads(line)
 	                except:
-	                    continue
+				print("Continuing at {} iteration {}".format(fname, it))
+				continue
 			if u'text' in data:
 				if (not data.get(u'lang')) or data[u'lang'] != 'en':
 					continue
