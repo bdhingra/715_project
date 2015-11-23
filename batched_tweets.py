@@ -193,11 +193,42 @@ def create_pairs(data_path):
         for line in f:
             j = json.loads(line)
             for pair in itertools.combinations(j[1],2):
-
                 # tags is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
                 tags.append((j[0], pair[0][0], pair[1][0]))
                 first.append(pair[0][1])
                 second.append(pair[1][1])
+
+    return (first, second, tags)
+
+def create_fewer_pairs(data_path):
+    tags = []
+    first = []
+    second = []
+    with io.open(data_path,'r', encoding='utf-8') as f:
+        for line in f:
+            j = json.loads(line)
+            
+            # keep track of pairs already generated from this hashtag
+            previous_pairs = {}
+
+            for first_tweet in j[1]:
+                universe = list(j[1])
+                universe.remove(first_tweet)
+
+                # remove already-seen pairs from universe
+                for key, value in previous_pairs.iteritems():
+                    if value == first_tweet[0]:
+                        universe = [match for match in universe if match[0] != key]
+                
+                # randomly pick second tweet from universe
+                if (universe):
+                    second_tweet = random.choice(universe)
+                    previous_pairs[first_tweet[0]] = second_tweet[0]
+
+                # tags is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
+                    tags.append((j[0], first_tweet[0], second_tweet[0]))
+                    first.append(first_tweet[1])
+                    second.append(second_tweet[1])
 
     return (first, second, tags)
 
