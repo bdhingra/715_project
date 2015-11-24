@@ -20,6 +20,12 @@ def add_tags(f_in, f_out, tag_dict):
 		if current[0] in tag_dict:
 			f_out.write(line)
 
+def remove_tags(f_in, f_out, tag_dict):
+	for line in f_in:
+		current = json.loads(line)
+		if not current[0] in tag_dict:
+			f_out.write(line)
+
 tag_dict = create_dict(open(tagPath,'r'))
-add_tags(open(dictPath,'r'), open(outPath,'w'), tag_dict)
+remove_tags(open(dictPath,'r'), open(outPath,'w'), tag_dict)
 print sum(tag_dict.values())

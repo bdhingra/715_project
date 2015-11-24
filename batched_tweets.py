@@ -13,8 +13,11 @@ class BatchedTweets():
 
     def __init__(self, data, validation_size=1000, batch_size=128, maxlen=None):
         self.batch_size = 128
-        self.validation = (data[0][0:validation_size], data[1][0:validation_size], data[2][0:validation_size])
-        self.data = (data[0][validation_size:], data[1][validation_size:], data[2][validation_size:])
+
+        index = range(len(data[0]))
+        random.shuffle(index)
+        self.validation = ([data[0][ii] for ii in index[:validation_size]],[data[1][ii] for ii in index[:validation_size]],[data[2][ii] for ii in index[:validation_size]])
+        self.data = ([data[0][ii] for ii in index[validation_size:]],[data[1][ii] for ii in index[validation_size:]],[data[2][ii] for ii in index[validation_size:]])
         self.batch_size = batch_size
         self.maxlen = maxlen
 

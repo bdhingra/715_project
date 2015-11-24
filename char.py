@@ -27,7 +27,9 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
     print("Preparing Data...")
 
     # Training data
-    trainX = batched_tweets.create_pairs(data_path)
+    print("Creating Pairs...")
+    trainX = batched_tweets.create_fewer_pairs(data_path)
+    print("Number of pairs = {}".format(len(trainX[0])))
 
     # Build dictionary
     chardict, charcount = batched_tweets.build_dictionary(trainX[0] + trainX[1])
@@ -85,52 +87,59 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
     print("Training...")
     uidx = 0
     try:
-	for epoch in range(num_epochs):
-	    n_samples = 0
+        for epoch in range(num_epochs):
+            n_samples = 0
             train_cost = 0.
-	    print("Epoch {}".format(epoch))
+            print("Epoch {}".format(epoch))
 
-	    for x,y,z in train_iter:
+            for x,y,z in train_iter:
                 if not x:
                     print("Minibatch with no valid triples")
                     continue
 
-		n_samples +=len(x)
-		uidx += 1
+                n_samples +=len(x)
+                uidx += 1
 
-		x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data(x, y, z, chardict, maxlen=MAX_LENGTH, n_chars=n_char)
+                x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data(x, y, z, chardict, maxlen=MAX_LENGTH, n_chars=n_char)
 
-		if x==None:
-		    print("Minibatch with zero samples under maxlength.")
-		    uidx -= 1
-		    continue
+                if x==None:
+                    print("Minibatch with zero samples under maxlength.")
+                    uidx -= 1
+                    continue
 
-		ud_start = time.time()
-		curr_cost = train(x,x_m,y,y_m,z,z_m)
-		ud = time.time() - ud_start
+                ud_start = time.time()
+                curr_cost = train(x,x_m,y,y_m,z,z_m)
+                ud = time.time() - ud_start
                 train_cost += curr_cost*len(x)
 
-		if np.isnan(curr_cost) or np.isinf(curr_cost):
-		    print("Nan detected.")
-		    return
+                if np.isnan(curr_cost) or np.isinf(curr_cost):
+                    print("Nan detected.")
+                    return
 
-		if np.mod(uidx, DISPF) == 0:
-		    print("Epoch {} Update {} Cost {} Time {} Samples {}".format(epoch,uidx,curr_cost,ud,len(x)))
+                if np.mod(uidx, DISPF) == 0:
+                    print("Epoch {} Update {} Cost {} Time {} Samples {}".format(epoch,uidx,curr_cost,ud,len(x)))
 
-		if np.mod(uidx,SAVEF) == 0:
-		    print("Saving...")
-		    saveparams = OrderedDict()
-		    for kk,vv in params.iteritems():
-			saveparams[kk] = vv.get_value()
-		    np.savez('%s/model.npz' % save_path,**saveparams)
-		    print("Done.")
+                if np.mod(uidx,SAVEF) == 0:
+                    print("Saving...")
+                    saveparams = OrderedDict()
+                    for kk,vv in params.iteritems():
+                        saveparams[kk] = vv.get_value()
+                        np.savez('%s/model.npz' % save_path,**saveparams)
+                    print("Done.")
 
-	    validation_cost = cost_val(t_val,t_val_m,tp_val,tp_val_m,tn_val,tn_val_m)
+            validation_cost = cost_val(t_val,t_val_m,tp_val,tp_val_m,tn_val,tn_val_m)
             print("Epoch {} Training Cost {} Validation Cost {}".format(epoch, train_cost/n_samples, validation_cost))
-	    print("Seen {} samples.".format(n_samples))
+            print("Seen {} samples.".format(n_samples))
 
             for kk,vv in params.iteritems():
                 print("Param {} Epoch {} Max {} Min {}".format(kk, epoch, np.max(vv.get_value()), np.min(vv.get_value())))
+
+            print("Saving...")
+            saveparams = OrderedDict()
+            for kk,vv in params.iteritems():
+                saveparams[kk] = vv.get_value()
+                np.savez('%s/model_%d.npz' % (save_path,epoch),**saveparams)
+            print("Done.")
             
             if DEBUG:
                 # store embeddings and data
@@ -157,7 +166,7 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
                     dd.write('%s\t%s\t%s\n' % (triple[0],triple[1],triple[2]))
 
     except KeyboardInterrupt:
-	pass
+        pass
 
 if __name__ == '__main__':
     main(sys.argv[1],sys.argv[2])
