@@ -233,9 +233,9 @@ def create_fewer_pairs(data_path):
                     previous_pairs[first_tweet[0]] = second_tweet[0]
 
                 # tags is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
-                    tags.append((j[0], first_tweet[0], second_tweet[0]))
-                    first.append(first_tweet[1])
-                    second.append(second_tweet[1])
+                tags.append((j[0], first_tweet[0], second_tweet[0]))
+                first.append(first_tweet[1])
+                second.append(second_tweet[1])
 
     return (first, second, tags)
 

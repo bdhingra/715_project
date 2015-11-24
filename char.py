@@ -28,7 +28,7 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
 
     # Training data
     print("Creating Pairs...")
-    trainX = batched_tweets.create_fewer_pairs(data_path)
+    trainX = batched_tweets.create_pairs(data_path)
     print("Number of pairs = {}".format(len(trainX[0])))
 
     # Build dictionary
