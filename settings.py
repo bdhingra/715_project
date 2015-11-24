@@ -12,6 +12,8 @@ N_CHAR = 1000
 CHAR_DIM = 100
 # Minimum levenshtein distance between t_pos hashtags and t_neg hashtags
 MIN_LEV_DIST = 5
+# Maximum number of triples generated for each hashtag
+MAX_TRIPLES_PER_HASHTAG = 1000000
 # Initialization scale
 SCALE = 0.1
 # Dimensionality of C2W hidden states
