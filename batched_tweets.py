@@ -2,7 +2,7 @@ import numpy
 import copy
 import cPickle as pkl
 from collections import OrderedDict
-from settings import MAX_LENGTH, N_CHAR, MIN_LEV_DIST
+from settings import MAX_LENGTH, N_CHAR, MIN_LEV_DIST, MAX_TRIPLES_PER_HASHTAG
 import json
 import itertools
 import random
@@ -192,11 +192,15 @@ def create_pairs(data_path):
     with io.open(data_path,'r', encoding='utf-8') as f:
         for line in f:
             j = json.loads(line)
+            num_pairs = 0
             for pair in itertools.combinations(j[1],2):
                 # tags is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
                 tags.append((j[0], pair[0][0], pair[1][0]))
                 first.append(pair[0][1])
                 second.append(pair[1][1])
+                num_pairs = num_pairs+1
+                if num_pairs == MAX_TRIPLES_PER_HASHTAG:
+                    break
 
     return (first, second, tags)
 
