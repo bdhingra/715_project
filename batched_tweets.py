@@ -11,21 +11,15 @@ import distance
 
 class BatchedTweets():
 
-    def __init__(self, data, validation_size=1000, batch_size=128, maxlen=None):
+    def __init__(self, data, batch_size=128, maxlen=None):
         self.batch_size = 128
 
-        index = range(len(data[0]))
-        random.shuffle(index)
-        self.validation = ([data[0][ii] for ii in index[:validation_size]],[data[1][ii] for ii in index[:validation_size]],[data[2][ii] for ii in index[:validation_size]])
-        self.data = ([data[0][ii] for ii in index[validation_size:]],[data[1][ii] for ii in index[validation_size:]],[data[2][ii] for ii in index[validation_size:]])
+        self.data = data
         self.batch_size = batch_size
         self.maxlen = maxlen
 
         self.prepare()
         self.reset()
-
-    def validation_set(self):
-        return self.validation
 
     def prepare(self):
         self.first = self.data[0]
@@ -99,11 +93,11 @@ def prepare_data(seqs_x, seqs_y, seqs_z, chardict, maxlen=MAX_LENGTH, n_chars=N_
     seqsY = []
     seqsZ = []
     for cc in seqs_x:
-        seqsX.append([chardict[c] if chardict[c] < n_chars else 0 for c in list(cc)])
+        seqsX.append([chardict[c] if c in chardict and chardict[c] < n_chars else 0 for c in list(cc)])
     for cc in seqs_y:
-        seqsY.append([chardict[c] if chardict[c] < n_chars else 0 for c in list(cc)])
+        seqsY.append([chardict[c] if c in chardict and chardict[c] < n_chars else 0 for c in list(cc)])
     for cc in seqs_z:
-        seqsZ.append([chardict[c] if chardict[c] < n_chars else 0 for c in list(cc)])
+        seqsZ.append([chardict[c] if c in chardict and chardict[c] < n_chars else 0 for c in list(cc)])
     seqs_x = seqsX
     seqs_y = seqsY
     seqs_z = seqsZ

@@ -119,7 +119,7 @@ def main(data_path, model_path, save_path):
     t_mask = T.fmatrix()
 
     # Embeddings
-    emb_t = tweet2vec(tweet, t_mask, params)
+    emb_t = tweet2vec(tweet, t_mask, params)[0]
 
     # Theano function
     f_enc = theano.function([tweet, t_mask], emb_t)

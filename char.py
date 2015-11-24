@@ -13,7 +13,7 @@ import time
 import cPickle as pkl
 
 from collections import OrderedDict
-from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG
+from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION
 from model import tweet2vec, init_params
 
 def tnorm(tens):
@@ -22,25 +22,23 @@ def tnorm(tens):
     '''
     return T.sqrt(T.sum(T.sqr(tens),axis=1))
 
-def main(data_path,save_path,num_epochs=NUM_EPOCHS):
+def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
 
     print("Preparing Data...")
 
     # Training data
     print("Creating Pairs...")
-    trainX = batched_tweets.create_pairs(data_path)
-    print("Number of pairs = {}".format(len(trainX[0])))
+    trainX = batched_tweets.create_pairs(train_path)
+    valX = batched_tweets.create_pairs(val_path)
+    print("Number of training pairs = {}".format(len(trainX[0])))
+    print("Number of validation pairs = {}".format(len(valX[0])))
 
     # Build dictionary
     chardict, charcount = batched_tweets.build_dictionary(trainX[0] + trainX[1])
     n_char = len(chardict.keys()) + 1
     batched_tweets.save_dictionary(chardict,charcount,'%s/dict.pkl' % save_path)
-    train_iter = batched_tweets.BatchedTweets(trainX, validation_size=N_VAL, batch_size=N_BATCH, maxlen=MAX_LENGTH)
-
-    # Validation set
-    t_val, tp_val, tn_tags = train_iter.validation_set()
-    t_val, tp_val, tn_val = batched_tweets.assign_third(t_val, tp_val, tn_tags)
-    t_val, t_val_m, tp_val, tp_val_m, tn_val, tn_val_m = batched_tweets.prepare_data(t_val, tp_val, tn_val, chardict, maxlen=MAX_LENGTH,n_chars=n_char)
+    train_iter = batched_tweets.BatchedTweets(trainX, batch_size=N_BATCH, maxlen=MAX_LENGTH)
+    val_iter = batched_tweets.BatchedTweets(valX, batch_size=512, maxlen=MAX_LENGTH)
 
     print("Building network...")
 
@@ -59,16 +57,16 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
     tn_mask = T.fmatrix()
 
     # Embeddings
-    emb_t = tweet2vec(tweet, t_mask, params)
-    emb_tp = tweet2vec(ptweet, tp_mask, params)
-    emb_tn = tweet2vec(ntweet, tn_mask, params)
+    emb_t = tweet2vec(tweet, t_mask, params)[0]
+    emb_tp = tweet2vec(ptweet, tp_mask, params)[0]
+    emb_tn = tweet2vec(ntweet, tn_mask, params)[0]
 
     # batch loss
     D1 = 1 - T.batched_dot(emb_t, emb_tp)/(tnorm(emb_t)*tnorm(emb_tp))
     D2 = 1 - T.batched_dot(emb_t, emb_tn)/(tnorm(emb_t)*tnorm(emb_tn))
     gap = D1-D2+M
     loss = gap*(gap>0)
-    cost = T.mean(loss)
+    cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params)[1], lasagne.regularization.l2)
 
     # params and updates
     print("Computing updates...")
@@ -110,7 +108,7 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
                 ud_start = time.time()
                 curr_cost = train(x,x_m,y,y_m,z,z_m)
                 ud = time.time() - ud_start
-                train_cost += curr_cost*len(x)
+                train_cost += curr_cost*n_samples
 
                 if np.isnan(curr_cost) or np.isinf(curr_cost):
                     print("Nan detected.")
@@ -127,8 +125,25 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
                         np.savez('%s/model.npz' % save_path,**saveparams)
                     print("Done.")
 
-            validation_cost = cost_val(t_val,t_val_m,tp_val,tp_val_m,tn_val,tn_val_m)
-            print("Epoch {} Training Cost {} Validation Cost {}".format(epoch, train_cost/n_samples, validation_cost))
+            print("Computing Validation Cost...")
+            validation_cost = 0.
+            n_val_samples = 0
+            for x,y,z in val_iter:
+                if not x:
+                    print("Validation: Minibatch with no valid triples")
+                    continue
+
+                n_val_samples += len(x)
+                x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data(x, y, z, chardict, maxlen=MAX_LENGTH, n_chars=n_char)
+
+                if x==None:
+                    print("Validation: Minibatch with zero samples under maxlength")
+                    continue
+
+                curr_cost = cost_val(x,x_m,y,y_m,z,z_m)
+                validation_cost += curr_cost*n_val_samples
+
+            print("Epoch {} Training Cost {} Validation Cost {}".format(epoch, train_cost/n_samples, validation_cost/n_val_samples))
             print("Seen {} samples.".format(n_samples))
 
             for kk,vv in params.iteritems():
@@ -169,4 +184,4 @@ def main(data_path,save_path,num_epochs=NUM_EPOCHS):
         pass
 
 if __name__ == '__main__':
-    main(sys.argv[1],sys.argv[2])
+    main(sys.argv[1],sys.argv[2],sys.argv[3])

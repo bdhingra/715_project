@@ -30,5 +30,7 @@ DISPF = 10
 SAVEF = 1000
 # Validation set
 N_VAL = 5000000
+# Regularization
+REGULARIZATION = 1e-4
 # Debug mode
 DEBUG = False
