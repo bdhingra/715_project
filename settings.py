@@ -23,7 +23,7 @@ WDIM = 100
 # Gap parameter
 M = 1
 # Learning rate
-LEARNING_RATE = .001
+LEARNING_RATE = .0005
 # Display frequency
 DISPF = 10
 # Save frequency
@@ -34,3 +34,5 @@ N_VAL = 5000000
 REGULARIZATION = 1e-4
 # Debug mode
 DEBUG = False
+# Reload model
+RELOAD = True

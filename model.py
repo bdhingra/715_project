@@ -8,7 +8,7 @@ import sys
 from collections import OrderedDict
 from settings import N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM
 
-def tweet2vec(tweet,mask,params):
+def tweet2vec(tweet,mask,params,n_char=N_CHAR):
     '''
     Tweet2Vec
     '''
@@ -19,7 +19,7 @@ def tweet2vec(tweet,mask,params):
     l_mask = lasagne.layers.InputLayer(shape=(N_BATCH,MAX_LENGTH), input_var=mask, name='mask')
 
     # lookup
-    l_clookup_source = lasagne.layers.EmbeddingLayer(l_in_source, input_size=N_CHAR, output_size=CHAR_DIM, W=params['Wc'])
+    l_clookup_source = lasagne.layers.EmbeddingLayer(l_in_source, input_size=n_char, output_size=CHAR_DIM, W=params['Wc'])
 
     # f-GRU
     c2w_f_reset = lasagne.layers.Gate(W_in=params['W_c2w_f_r'], W_hid=params['U_c2w_f_r'], W_cell=None, b=params['b_c2w_f_r'], nonlinearity=lasagne.nonlinearities.sigmoid)
@@ -97,5 +97,18 @@ def load_params(path):
         npzfile = np.load(f)
         for kk, vv in npzfile.iteritems():
             params[kk] = vv
+
+    return params
+
+def load_params_shared(path):
+    """
+    Load previously saved model
+    """
+    params = OrderedDict()
+
+    with open(path,'r') as f:
+        npzfile = np.load(f)
+        for kk, vv in npzfile.iteritems():
+            params[kk] = theano.shared(vv, name=kk)
 
     return params

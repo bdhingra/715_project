@@ -103,6 +103,7 @@ def main(data_path, model_path, save_path):
         X = f.read().splitlines()
     with open('%s/dict.pkl' % model_path, 'rb') as f:
         chardict = pkl.load(f)
+    n_char = len(chardict.keys()) + 1
 
     # Prepare data for encoding
     batches = Batch(X)
@@ -119,7 +120,7 @@ def main(data_path, model_path, save_path):
     t_mask = T.fmatrix()
 
     # Embeddings
-    emb_t = tweet2vec(tweet, t_mask, params)[0]
+    emb_t = tweet2vec(tweet, t_mask, params, n_char)[0]
 
     # Theano function
     f_enc = theano.function([tweet, t_mask], emb_t)

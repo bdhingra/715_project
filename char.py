@@ -13,8 +13,8 @@ import time
 import cPickle as pkl
 
 from collections import OrderedDict
-from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION
-from model import tweet2vec, init_params
+from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION, RELOAD
+from model import tweet2vec, init_params, load_params_shared
 
 def tnorm(tens):
     '''
@@ -27,24 +27,44 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     print("Preparing Data...")
 
     # Training data
-    print("Creating Pairs...")
-    trainX = batched_tweets.create_pairs(train_path)
-    valX = batched_tweets.create_pairs(val_path)
-    print("Number of training pairs = {}".format(len(trainX[0])))
-    print("Number of validation pairs = {}".format(len(valX[0])))
+    if not RELOAD:
+        print("Creating Pairs...")
+        trainX = batched_tweets.create_pairs(train_path)
+        valX = batched_tweets.create_pairs(val_path)
+        print("Number of training pairs = {}".format(len(trainX[0])))
+        print("Number of validation pairs = {}".format(len(valX[0])))
+        with open('%s/train_pairs.pkl'%(save_path),'w') as f:
+            pkl.dump(trainX, f)
+        with open('%s/val_pairs.pkl'%(save_path),'w') as f:
+            pkl.dump(valX, f)
 
-    # Build dictionary
-    chardict, charcount = batched_tweets.build_dictionary(trainX[0] + trainX[1])
-    n_char = len(chardict.keys()) + 1
-    batched_tweets.save_dictionary(chardict,charcount,'%s/dict.pkl' % save_path)
-    train_iter = batched_tweets.BatchedTweets(trainX, batch_size=N_BATCH, maxlen=MAX_LENGTH)
-    val_iter = batched_tweets.BatchedTweets(valX, batch_size=512, maxlen=MAX_LENGTH)
+        # Build dictionary
+        chardict, charcount = batched_tweets.build_dictionary(trainX[0] + trainX[1])
+        n_char = len(chardict.keys()) + 1
+        batched_tweets.save_dictionary(chardict,charcount,'%s/dict.pkl' % save_path)
+        train_iter = batched_tweets.BatchedTweets(trainX, batch_size=N_BATCH, maxlen=MAX_LENGTH)
+        val_iter = batched_tweets.BatchedTweets(valX, batch_size=512, maxlen=MAX_LENGTH)
+
+        # params
+        n_char = len(chardict.keys()) + 1
+        params = init_params(n_chars=n_char)
+
+    else:
+        print("Loading Pairs...")
+        with open('%s/train_pairs.pkl'%(save_path),'r') as f:
+            trainX = pkl.load(f)
+        with open('%s/val_pairs.pkl'%(save_path),'r') as f:
+            valX = pkl.load(f)
+
+        print("Loading model params...")
+        params = load_params_shared('%s/model.npz' % model_path)
+
+        print("Loading dictionary...")
+        with open('%s/dict.pkl' % model_path, 'rb') as f:
+            chardict = pkl.load(f)
+        n_char = len(chardict.keys()) + 1
 
     print("Building network...")
-
-    # params
-    n_char = len(chardict.keys()) + 1
-    params = init_params(n_chars=n_char)
 
     # Tweet variables
     tweet = T.itensor3()
@@ -57,16 +77,16 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     tn_mask = T.fmatrix()
 
     # Embeddings
-    emb_t = tweet2vec(tweet, t_mask, params)[0]
-    emb_tp = tweet2vec(ptweet, tp_mask, params)[0]
-    emb_tn = tweet2vec(ntweet, tn_mask, params)[0]
+    emb_t = tweet2vec(tweet, t_mask, params, n_char)[0]
+    emb_tp = tweet2vec(ptweet, tp_mask, params, n_char)[0]
+    emb_tn = tweet2vec(ntweet, tn_mask, params, n_char)[0]
 
     # batch loss
     D1 = 1 - T.batched_dot(emb_t, emb_tp)/(tnorm(emb_t)*tnorm(emb_tp))
     D2 = 1 - T.batched_dot(emb_t, emb_tn)/(tnorm(emb_t)*tnorm(emb_tn))
     gap = D1-D2+M
     loss = gap*(gap>0)
-    cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params)[1], lasagne.regularization.l2)
+    cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params, n_char)[1], lasagne.regularization.l2)
 
     # params and updates
     print("Computing updates...")
