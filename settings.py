@@ -1,9 +1,9 @@
 # Set global params here
 
 # Number of epochs
-NUM_EPOCHS = 20
+NUM_EPOCHS = 10
 # Batch size
-N_BATCH = 128
+N_BATCH = 512
 # Max sequence length
 MAX_LENGTH = 145
 # Number of unique characters
@@ -23,7 +23,7 @@ WDIM = 100
 # Gap parameter
 M = 1
 # Learning rate
-LEARNING_RATE = .0005
+LEARNING_RATE = .001
 # Display frequency
 DISPF = 10
 # Save frequency
@@ -35,4 +35,6 @@ REGULARIZATION = 1e-4
 # Debug mode
 DEBUG = False
 # Reload model
-RELOAD = True
+RELOAD_MODEL = False
+# Reload data
+RELOAD_DATA = True

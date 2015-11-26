@@ -11,6 +11,7 @@ import sys
 import time
 import cPickle as pkl
 import copy
+import io
 
 from collections import OrderedDict, defaultdict
 from settings import MAX_LENGTH, N_CHAR, WDIM
@@ -78,8 +79,7 @@ def prepare_data(seqs_x, chardict, n_chars=N_CHAR):
     # remove never before seen characters and convert to index
     seqsX = []
     for cc in seqs_x:
-        ccf = [c for c in list(cc) if c in chardict]
-        seqsX.append([chardict[c] if chardict[c] < n_chars else 0 for c in ccf])
+        seqsX.append([chardict[c] if c in chardict and chardict[c] < n_chars else 0 for c in cc])
     seqs_x = seqsX
 
     lengths_x = [len(s) for s in seqs_x]
@@ -99,8 +99,10 @@ def main(data_path, model_path, save_path):
     print("Preparing Data...")
 
     # Load data and dictionary
-    with open(data_path,'r') as f:
-        X = f.read().splitlines()
+    X = []
+    with io.open(data_path,'r',encoding='utf-8') as f:
+        for line in f:
+            X.append(line.rstrip('\n'))
     with open('%s/dict.pkl' % model_path, 'rb') as f:
         chardict = pkl.load(f)
     n_char = len(chardict.keys()) + 1
@@ -127,6 +129,7 @@ def main(data_path, model_path, save_path):
 
     # Encode
     print("Encoding data...")
+    print("Input data {} samples".format(len(X)))
     features = np.zeros((len(X),WDIM), dtype='float32')
     it = 0
     for x,i in batches:

@@ -13,7 +13,7 @@ import time
 import cPickle as pkl
 
 from collections import OrderedDict
-from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION, RELOAD
+from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION, RELOAD_MODEL, RELOAD_DATA
 from model import tweet2vec, init_params, load_params_shared
 
 def tnorm(tens):
@@ -27,7 +27,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     print("Preparing Data...")
 
     # Training data
-    if not RELOAD:
+    if not RELOAD_DATA:
         print("Creating Pairs...")
         trainX = batched_tweets.create_pairs(train_path)
         valX = batched_tweets.create_pairs(val_path)
@@ -37,7 +37,14 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
             pkl.dump(trainX, f)
         with open('%s/val_pairs.pkl'%(save_path),'w') as f:
             pkl.dump(valX, f)
+    else:
+        print("Loading Pairs...")
+        with open(train_path,'r') as f:
+            trainX = pkl.load(f)
+        with open(val_path,'r') as f:
+            valX = pkl.load(f)
 
+    if not RELOAD_MODEL:
         # Build dictionary
         chardict, charcount = batched_tweets.build_dictionary(trainX[0] + trainX[1])
         n_char = len(chardict.keys()) + 1
@@ -50,12 +57,6 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
         params = init_params(n_chars=n_char)
 
     else:
-        print("Loading Pairs...")
-        with open('%s/train_pairs.pkl'%(save_path),'r') as f:
-            trainX = pkl.load(f)
-        with open('%s/val_pairs.pkl'%(save_path),'r') as f:
-            valX = pkl.load(f)
-
         print("Loading model params...")
         params = load_params_shared('%s/model.npz' % model_path)
 
