@@ -6,6 +6,10 @@ NUM_EPOCHS = 10
 N_BATCH = 512
 # Max sequence length
 MAX_LENGTH = 145
+# Max number of characters in word
+MAX_WORD_LENGTH = 8
+# Max number of words in a tweet
+MAX_SEQ_LENGTH = 20
 # Number of unique characters
 N_CHAR = 1000
 # Dimensionality of character lookup
@@ -17,9 +21,13 @@ MAX_TRIPLES_PER_HASHTAG = 1000
 # Initialization scale
 SCALE = 0.1
 # Dimensionality of C2W hidden states
-C2W_HDIM = 150
+C2W_HDIM = 100
 # Dimensionality of word vectors
-WDIM = 100
+WDIM = 75
+# Dimensionality of W2S hidden states
+W2S_HDIM = 150
+# Dimensionality of sequence
+SDIM = 100
 # Gap parameter
 M = 1
 # Learning rate
