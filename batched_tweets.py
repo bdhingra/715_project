@@ -273,7 +273,7 @@ def create_fewer_pairs(data_path):
 
     return (first, second, tags)
 
-def assign_third(first, second, tags):
+def assign_third_old(first, second, tags):
     third = []
     valid = []
 
@@ -338,4 +338,31 @@ def assign_third(first, second, tags):
             second_out.append(second[i])
             third_out.append(third[i])
 
+    return (first_out, second_out, third_out)
+
+def assign_third(first, second, tags):
+    first_out = []
+    second_out = []
+    third_out = []
+    
+    B = len(first)
+    for i in range(B): 
+        ti = first[i]
+        si = second[i]
+        hi, tidi, sidi = tags[i]
+        flag = True
+        while (flag): 
+            j = random.randrange(B)
+            hj = tags[j][0]
+            if distance.levenshtein(hi, hj) < MIN_LEV_DIST: 
+                if (random.getrandbits(1)): 
+                    tj = first[j] 
+                else: 
+                    tj = second[j] 
+                if (tj != tidi ) & (tj != sidi): 
+                    first_out.append(ti)
+                    second_out.append(si)
+                    third_out.append(tj)
+                    flag = False   
+                    
     return (first_out, second_out, third_out)
