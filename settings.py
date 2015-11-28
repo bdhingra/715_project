@@ -3,7 +3,7 @@
 # Number of epochs
 NUM_EPOCHS = 10
 # Batch size
-N_BATCH = 512
+N_BATCH = 256
 # Max sequence length
 MAX_LENGTH = 145
 # Number of unique characters
@@ -25,7 +25,7 @@ M = 1
 # Learning rate
 LEARNING_RATE = .001
 # Display frequency
-DISPF = 10
+DISPF = 1
 # Save frequency
 SAVEF = 1000
 # Validation set
@@ -35,6 +35,8 @@ REGULARIZATION = 1e-4
 # Debug mode
 DEBUG = False
 # Reload model
-RELOAD_MODEL = True
+RELOAD_MODEL = False
 # Reload data
 RELOAD_DATA = True
+# Number of attempts to find negative tweet sample
+ATTEMPTS = 15
