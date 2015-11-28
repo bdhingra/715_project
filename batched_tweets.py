@@ -328,9 +328,9 @@ def assign_third(first, second, tags):
                     tj = second[j] 
                     newdi = tags[j][2]
                 if (newdi != tidi ) & (newdi != sidi): 
-                    first_out.append(ti+hi)
-                    second_out.append(si+hi)
-                    third_out.append(tj+hj)
+                    first_out.append(ti)
+                    second_out.append(si)
+                    third_out.append(tj)
                     flag = 0
                     
     return (first_out, second_out, third_out)
