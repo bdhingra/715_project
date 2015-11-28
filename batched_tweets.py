@@ -306,23 +306,31 @@ def assign_third(first, second, tags):
     third_out = []
     
     B = len(first)
+    attempts = min(B-1,50)
     for i in range(B): 
         ti = first[i]
         si = second[i]
         hi, tidi, sidi = tags[i]
-        flag = True
+        flag = attempts
+        checked = []
         while (flag): 
             j = random.randrange(B)
+            if j in checked:
+                continue
+            checked.append(j)
+            flag -= 1
             hj = tags[j][0]
-            if distance.levenshtein(hi, hj) < MIN_LEV_DIST: 
+            if distance.levenshtein(hi, hj) > MIN_LEV_DIST: 
                 if (random.getrandbits(1)): 
                     tj = first[j] 
+                    newdi = tags[j][1]
                 else: 
                     tj = second[j] 
-                if (tj != tidi ) & (tj != sidi): 
-                    first_out.append(ti)
-                    second_out.append(si)
-                    third_out.append(tj)
-                    flag = False   
+                    newdi = tags[j][2]
+                if (newdi != tidi ) & (newdi != sidi): 
+                    first_out.append(ti+hi)
+                    second_out.append(si+hi)
+                    third_out.append(tj+hj)
+                    flag = 0
                     
     return (first_out, second_out, third_out)

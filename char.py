@@ -49,8 +49,6 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
         chardict, charcount = batched_tweets.build_dictionary(trainX[0] + trainX[1])
         n_char = len(chardict.keys()) + 1
         batched_tweets.save_dictionary(chardict,charcount,'%s/dict.pkl' % save_path)
-        train_iter = batched_tweets.BatchedTweets(trainX, batch_size=N_BATCH, maxlen=MAX_LENGTH)
-        val_iter = batched_tweets.BatchedTweets(valX, batch_size=512, maxlen=MAX_LENGTH)
 
         # params
         n_char = len(chardict.keys()) + 1
@@ -58,12 +56,15 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
 
     else:
         print("Loading model params...")
-        params = load_params_shared('%s/model.npz' % model_path)
+        params = load_params_shared('%s/model.npz' % save_path)
 
         print("Loading dictionary...")
-        with open('%s/dict.pkl' % model_path, 'rb') as f:
+        with open('%s/dict.pkl' % save_path, 'rb') as f:
             chardict = pkl.load(f)
         n_char = len(chardict.keys()) + 1
+
+    train_iter = batched_tweets.BatchedTweets(trainX, batch_size=N_BATCH, maxlen=MAX_LENGTH)
+    val_iter = batched_tweets.BatchedTweets(valX, batch_size=512, maxlen=MAX_LENGTH)
 
     print("Building network...")
 
@@ -129,7 +130,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 ud_start = time.time()
                 curr_cost = train(x,x_m,y,y_m,z,z_m)
                 ud = time.time() - ud_start
-                train_cost += curr_cost*n_samples
+                train_cost += curr_cost*len(x)
 
                 if np.isnan(curr_cost) or np.isinf(curr_cost):
                     print("Nan detected.")
@@ -162,7 +163,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     continue
 
                 curr_cost = cost_val(x,x_m,y,y_m,z,z_m)
-                validation_cost += curr_cost*n_val_samples
+                validation_cost += curr_cost*len(x)
 
             print("Epoch {} Training Cost {} Validation Cost {}".format(epoch, train_cost/n_samples, validation_cost/n_val_samples))
             print("Seen {} samples.".format(n_samples))
