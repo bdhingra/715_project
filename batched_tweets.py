@@ -93,9 +93,9 @@ def prepare_data_c2w2s(seqs_x, seqs_y, seqs_z, chardict, maxwordlen=MAX_WORD_LEN
     x = numpy.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('int32')
     y = numpy.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('int32')
     z = numpy.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('int32')
-    x_mask = numpy.zeros((n_samples,MAX_LENGTH,MAX_WORD_LENGTH)).astype('float32')
-    y_mask = numpy.zeros((n_samples,MAX_LENGTH,MAX_WORD_LENGTH)).astype('float32')
-    z_mask = numpy.zeros((n_samples,MAX_LENGTH,MAX_WORD_LENGTH)).astype('float32')
+    x_mask = numpy.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('float32')
+    y_mask = numpy.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('float32')
+    z_mask = numpy.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('float32')
 
     # Split words and replace by indices
     for seq_id, cc in enumerate(seqs_x):
@@ -346,13 +346,19 @@ def assign_third(first, second, tags):
     third_out = []
     
     B = len(first)
+    attempts = min(B-1,50)
     for i in range(B): 
         ti = first[i]
         si = second[i]
         hi, tidi, sidi = tags[i]
-        flag = True
+        flag = attempts
+        checked = []
         while (flag): 
             j = random.randrange(B)
+            if j in checked:
+                continue
+            checked.append(j)
+            flag -= 1
             hj = tags[j][0]
             if distance.levenshtein(hi, hj) < MIN_LEV_DIST: 
                 if (random.getrandbits(1)): 
@@ -363,6 +369,6 @@ def assign_third(first, second, tags):
                     first_out.append(ti)
                     second_out.append(si)
                     third_out.append(tj)
-                    flag = False   
+                    flag = 0
                     
     return (first_out, second_out, third_out)

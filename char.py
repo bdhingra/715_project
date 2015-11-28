@@ -129,7 +129,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 ud_start = time.time()
                 curr_cost = train(x,x_m,y,y_m,z,z_m)
                 ud = time.time() - ud_start
-                train_cost += curr_cost*n_samples
+                train_cost += curr_cost*len(x)
 
                 if np.isnan(curr_cost) or np.isinf(curr_cost):
                     print("Nan detected.")
@@ -162,7 +162,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     continue
 
                 curr_cost = cost_val(x,x_m,y,y_m,z,z_m)
-                validation_cost += curr_cost*n_val_samples
+                validation_cost += curr_cost*len(x)
 
             print("Epoch {} Training Cost {} Validation Cost {}".format(epoch, train_cost/n_samples, validation_cost/n_val_samples))
             print("Seen {} samples.".format(n_samples))

@@ -111,6 +111,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
             train_cost = 0.
             print("Epoch {}".format(epoch))
 
+            ud_start = time.time()
             for x,y,z in train_iter:
                 if not x:
                     print("Minibatch with no valid triples")
@@ -126,15 +127,14 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     uidx -= 1
                     continue
 
-                ud_start = time.time()
                 curr_cost = train(x,x_m,y,y_m,z,z_m)
-                ud = time.time() - ud_start
-                train_cost += curr_cost*n_samples
+                train_cost += curr_cost*len(x)
 
                 if np.isnan(curr_cost) or np.isinf(curr_cost):
                     print("Nan detected.")
                     return
 
+                ud = time.time() - ud_start
                 if np.mod(uidx, DISPF) == 0:
                     print("Epoch {} Update {} Cost {} Time {} Samples {}".format(epoch,uidx,curr_cost,ud,len(x)))
 
@@ -162,7 +162,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     continue
 
                 curr_cost = cost_val(x,x_m,y,y_m,z,z_m)
-                validation_cost += curr_cost*n_val_samples
+                validation_cost += curr_cost*len(x)
 
             print("Epoch {} Training Cost {} Validation Cost {}".format(epoch, train_cost/n_samples, validation_cost/n_val_samples))
             print("Seen {} samples.".format(n_samples))
