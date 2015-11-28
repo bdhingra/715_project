@@ -112,6 +112,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
             train_cost = 0.
             print("Epoch {}".format(epoch))
 
+            ud_start = time.time()
             for x,y,z in train_iter:
                 if not x:
                     print("Minibatch with no valid triples")
@@ -127,7 +128,6 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     uidx -= 1
                     continue
 
-                ud_start = time.time()
                 curr_cost = train(x,x_m,y,y_m,z,z_m)
                 ud = time.time() - ud_start
                 train_cost += curr_cost*len(x)

@@ -2,7 +2,7 @@ import numpy
 import copy
 import cPickle as pkl
 from collections import OrderedDict
-from settings import MAX_LENGTH, N_CHAR, MIN_LEV_DIST, MAX_TRIPLES_PER_HASHTAG, MAX_WORD_LENGTH, MAX_SEQ_LENGTH
+from settings import MAX_LENGTH, N_CHAR, MIN_LEV_DIST, MAX_TRIPLES_PER_HASHTAG, MAX_WORD_LENGTH, MAX_SEQ_LENGTH, ATTEMPTS
 import json
 import itertools
 import random
@@ -346,7 +346,7 @@ def assign_third(first, second, tags):
     third_out = []
     
     B = len(first)
-    attempts = min(B-1,50)
+    attempts = min(B-1,ATTEMPTS)
     for i in range(B): 
         ti = first[i]
         si = second[i]
