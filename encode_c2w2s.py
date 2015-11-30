@@ -77,8 +77,8 @@ def prepare_data_c2w2s(seqs_x, chardict, maxwordlen=MAX_WORD_LENGTH, maxseqlen=M
     Put the data into format useable by the model
     """
     n_samples = len(seqs_x)
-    x = numpy.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('int32')
-    x_mask = numpy.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('float32')
+    x = np.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('int32')
+    x_mask = np.zeros((n_samples,MAX_SEQ_LENGTH,MAX_WORD_LENGTH)).astype('float32')
 
     # Split words and replace by indices
     for seq_id, cc in enumerate(seqs_x):
@@ -90,7 +90,7 @@ def prepare_data_c2w2s(seqs_x, chardict, maxwordlen=MAX_WORD_LENGTH, maxseqlen=M
             x[seq_id,word_id,:c_len] = [chardict[c] if c in chardict and chardict[c] < n_chars else 0 for c in list(word)[:c_len]]
             x_mask[seq_id,word_id,:c_len] = 1.
 
-    return numpy.expand_dims(x,axis=3), x_mask
+    return np.expand_dims(x,axis=3), x_mask
 
 def main(data_path, model_path, save_path):
 

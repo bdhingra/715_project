@@ -4,9 +4,9 @@ import string
 import sys
 
 # paths
-entpath = 'data/tweet_processed_text_en.txt'
-vecpath = 'data/test_features.npz'
-outpath = 'data/knn.txt'
+entpath = sys.argv[1]
+vecpath = sys.argv[2]
+outpath = sys.argv[3]
 
 # params
 k = 10
@@ -19,6 +19,11 @@ vec = np.load(open(vecpath,'r'))
 # load entities
 with open(entpath, 'r') as f:
     xp = f.read().splitlines()
+
+# normalize
+row_sums = np.square(vec).sum(axis=1)
+norms = np.sqrt(row_sums)
+vec = vec / norms[:,np.newaxis]
 
 test_vec = vec[:t]
 test_ent = xp[:t]
@@ -36,8 +41,11 @@ for i,e in enumerate(test_ent):
     if i % 100 == 0:
 	print("Test entity {}".format(i))
     v = test_vec[i]
-    d = np.linalg.norm(vec-v,axis=1)
-    min_idx = d.argsort()[:k]
+    #d = np.linalg.norm(vec-v,axis=1)
+    d = np.empty(vec.shape[0])
+    for ind in range(vec.shape[0]):
+        d[ind] = np.dot(v,vec[ind])
+    min_idx = d.argsort()[-k:][::-1]
     ke = [xp[ii] for ii in min_idx]
     kd = [d[ii] for ii in min_idx]
     f.write('%s\n' % e)
