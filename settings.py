@@ -43,7 +43,7 @@ REGULARIZATION = 1e-4
 # Debug mode
 DEBUG = False
 # Reload model
-RELOAD_MODEL = False
+RELOAD_MODEL = True
 # Reload data
 RELOAD_DATA = True
 # Number of attempts to find negative tweet sample
