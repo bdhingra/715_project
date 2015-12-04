@@ -89,6 +89,8 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     gap = D1-D2+M
     loss = gap*(gap>0)
     cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params, n_char)[1], lasagne.regularization.l2)
+    cost_only = T.mean(loss)
+    reg_only = REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params, n_char)[1], lasagne.regularization.l2)
 
     # params and updates
     print("Computing updates...")
@@ -97,10 +99,11 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     # Theano function
     print("Compiling theano functions...")
     inps = [tweet,t_mask,ptweet,tp_mask,ntweet,tn_mask]
-    dist = theano.function(inps,[D1,D2])
-    l = theano.function(inps,loss)
-    t2v = theano.function(inps,[emb_t,emb_tp,emb_tn])
-    cost_val = theano.function(inps,cost)
+    #dist = theano.function(inps,[D1,D2])
+    #l = theano.function(inps,loss)
+    #t2v = theano.function(inps,[emb_t,emb_tp,emb_tn])
+    cost_val = theano.function(inps,cost_only)
+    reg_val = theano.function([],reg_only)
     train = theano.function(inps,cost,updates=updates)
 
     # Training
@@ -165,7 +168,8 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 curr_cost = cost_val(x,x_m,y,y_m,z,z_m)
                 validation_cost += curr_cost*len(x)
 
-            print("Epoch {} Training Cost {} Validation Cost {}".format(epoch, train_cost/n_samples, validation_cost/n_val_samples))
+            regularization_cost = reg_val()
+            print("Epoch {} Training Cost {} Validation Cost {} Regularization Cost {}".format(epoch, train_cost/n_samples, validation_cost/n_val_samples, regularization_cost))
             print("Seen {} samples.".format(n_samples))
 
             for kk,vv in params.iteritems():

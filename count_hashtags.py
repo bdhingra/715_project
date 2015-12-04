@@ -1,6 +1,7 @@
 import sys
 import json
 import matplotlib.pyplot as plt
+import numpy as np
 
 from collections import defaultdict
 
@@ -38,6 +39,10 @@ for c in sorted_counts:
 print("Number of tweets above threshold = {} (total {})".format(s,total))
 
 # plot values
+h,b = np.histogram(sorted_counts, bins=500)
 plt.figure()
-plt.hist(sorted_counts,bins=10000)
+plt.plot(h)
+plt.yscale('log')
+#plt.hist(sorted_counts,bins=10000)
+#plt.yscale('log')
 plt.show()

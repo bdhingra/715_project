@@ -94,7 +94,7 @@ def prepare_data(seqs_x, chardict, n_chars=N_CHAR):
 
     return np.expand_dims(x,axis=2), x_mask
 
-def main(data_path, model_path, save_path):
+def main(data_path, model_path, dict_path, save_path):
 
     print("Preparing Data...")
 
@@ -103,7 +103,7 @@ def main(data_path, model_path, save_path):
     with io.open(data_path,'r',encoding='utf-8') as f:
         for line in f:
             X.append(line.rstrip('\n'))
-    with open('%s/dict.pkl' % model_path, 'rb') as f:
+    with open(dict_path, 'rb') as f:
         chardict = pkl.load(f)
     n_char = len(chardict.keys()) + 1
 
@@ -112,7 +112,7 @@ def main(data_path, model_path, save_path):
 
     # Load model
     print("Loading model params...")
-    params = load_params('%s/model.npz' % model_path)
+    params = load_params(model_path)
 
     # Build encoder
     print("Building encoder...")
@@ -147,4 +147,4 @@ def main(data_path, model_path, save_path):
         np.save(o, features)
 
 if __name__ == '__main__':
-    main(sys.argv[1],sys.argv[2],sys.argv[3])
+    main(sys.argv[1],sys.argv[2],sys.argv[3],sys.argv[4])

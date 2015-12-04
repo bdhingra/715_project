@@ -7,7 +7,7 @@ import numpy as np
 import cPickle as pkl
 import lasagne
 
-from settings import MAX_LENGTH, M, MAX_WORD_LENGTH, MAX_SEQ_LENGTH
+from settings import MAX_LENGTH, M, MAX_WORD_LENGTH, MAX_SEQ_LENGTH, REGULARIZATION
 from model import load_params, char2word2vec
 
 def tnorm(tens):
@@ -63,16 +63,20 @@ def main(data_path, model_path):
         gap = D1-D2+M
         loss = gap*(gap>0)
         cost = T.mean(loss)
+        reg = REGULARIZATION*lasagne.regularization.regularize_network_params(char2word2vec(tweet, t_mask, params, n_char)[1], lasagne.regularization.l2) + REGULARIZATION*lasagne.regularization.regularize_network_params(char2word2vec(tweet, t_mask, params, n_char)[2], lasagne.regularization.l2)
+
 
         # Theano function
         print("Compiling theano function...")
         inps = [tweet,t_mask,ptweet,tp_mask,ntweet,tn_mask]
         cost_val = theano.function(inps,cost)
+        reg_val = theano.function([], reg)
 
         print("Testing...")
         uidx = 0
         try:
             validation_cost = 0.
+            reg_cost = 0.
             n_val_samples = 0
             for x,y,z in val_iter:
                 if not x:
@@ -89,7 +93,8 @@ def main(data_path, model_path):
                 curr_cost = cost_val(x,x_m,y,y_m,z,z_m)
                 validation_cost += curr_cost*len(x)
 
-            print("Model {} Validation Cost {}".format(modelf, validation_cost/n_val_samples))
+            reg_cost = reg_val()
+            print("Model {} Validation Cost {} Regularization Cost {}".format(modelf, validation_cost/n_val_samples, reg_cost))
             print("Seen {} samples.".format(n_val_samples))
 
         except KeyboardInterrupt:
