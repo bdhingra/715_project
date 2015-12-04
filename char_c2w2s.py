@@ -154,7 +154,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     print("Params before update...")
                     print_params(params)
                     display_actv(x,x_m,y,y_m,z,z_m,inps,w2s,'before')
-                    cb, embb, embb_p, embb_n = cost_val(x,x_m,y)
+                    cb, embb, embb_p, embb_n = cost_val(x,x_m,y,y_m,z,z_m)
 
                 curr_cost = train(x,x_m,y,y_m,z,z_m)
                 train_cost += curr_cost*len(x)
@@ -163,7 +163,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     print("Params after update...")
                     print_params(params)
                     display_actv(x,x_m,y,y_m,z,z_m,inps,w2s,'after')
-                    ca, emba, emba_p, emba_n = cost_val(x,x_m,y)
+                    ca, emba, emba_p, emba_n = cost_val(x,x_m,y,y_m,z,z_m)
                     print("Embeddings before = {}".format(embb[:5]))
                     print("Embeddings after = {}".format(emba[:5]))
                     print("Cost before update = {} \nCost after update = {}".format(cb, ca))
