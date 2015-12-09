@@ -13,7 +13,7 @@ import time
 import cPickle as pkl
 
 from collections import OrderedDict
-from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION, RELOAD_MODEL, RELOAD_DATA, MOMENTUM, USE_SCHEDULE
+from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, DEBUG, REGULARIZATION, RELOAD_MODEL, RELOAD_DATA, MOMENTUM, USE_SCHEDULE
 from model import tweet2vec, init_params, load_params_shared
 
 def tnorm(tens):
@@ -21,6 +21,19 @@ def tnorm(tens):
     Tensor Norm
     '''
     return T.sqrt(T.sum(T.sqr(tens),axis=1))
+
+def print_params(params):
+    for kk,vv in params.iteritems():
+        print("Param {} = {}".format(kk, vv.get_value()))
+
+def display_actv(x, x_m, y, y_m, z, z_m, inps, net, prefix):
+    print("\nactivations...")
+
+    layers = lasagne.layers.get_all_layers(net)
+
+    for l in layers:
+        f = theano.function(inps, lasagne.layers.get_output(l),on_unused_input='warn')
+        print("layer "+prefix+" {} - {}".format(l.name, f(x,x_m,y,y_m,z,z_m)))
 
 def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
 
@@ -79,24 +92,24 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     tn_mask = T.fmatrix()
 
     # Embeddings
-    emb_t = lasagne.layers.get_output(tweet2vec(tweet, t_mask, params, n_char))
-    emb_tp = lasagne.layers.get_output(tweet2vec(ptweet, tp_mask, params, n_char))
-    emb_tn = lasagne.layers.get_output(tweet2vec(ntweet, tn_mask, params, n_char))
+    emb_t, net = tweet2vec(tweet, t_mask, params, n_char)
+    emb_tp, net = tweet2vec(ptweet, tp_mask, params, n_char)
+    emb_tn, net = tweet2vec(ntweet, tn_mask, params, n_char)
 
     # batch loss
     D1 = 1 - T.batched_dot(emb_t, emb_tp)/(tnorm(emb_t)*tnorm(emb_tp))
     D2 = 1 - T.batched_dot(emb_t, emb_tn)/(tnorm(emb_t)*tnorm(emb_tn))
     gap = D1-D2+M
     loss = gap*(gap>0)
-    cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params, n_char), lasagne.regularization.l2)
+    cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(net, lasagne.regularization.l2)
     cost_only = T.mean(loss)
-    reg_only = REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params, n_char), lasagne.regularization.l2)
+    reg_only = REGULARIZATION*lasagne.regularization.regularize_network_params(net, lasagne.regularization.l2)
 
     # params and updates
     print("Computing updates...")
     lr = LEARNING_RATE
     mu = MOMENTUM
-    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(tweet2vec(tweet,t_mask,params,n_char)), lr, momentum=mu)
+    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(net, trainable=True), lr, momentum=mu)
 
     # Theano function
     print("Compiling theano functions...")
@@ -151,7 +164,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 if DEBUG:
                     print("Params before update...")
                     print_params(params)
-                    display_actv(x,x_m,y,y_m,z,z_m,inps,tweet2vec(tweet,t_mask,params,n_char),'before')
+                    display_actv(x,x_m,y,y_m,z,z_m,inps,net,'before')
                     cb, embb, embb_p, embb_n = cost_val(x,x_m,y,y_m,z,z_m)
 
                 curr_cost = train(x,x_m,y,y_m,z,z_m)
@@ -161,7 +174,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 if DEBUG:
                     print("Params after update...")
                     print_params(params)
-                    display_actv(x,x_m,y,y_m,z,z_m,inps,w2s,'after')
+                    display_actv(x,x_m,y,y_m,z,z_m,inps,net,'after')
                     ca, emba, emba_p, emba_n = cost_val(x,x_m,y,y_m,z,z_m)
                     print("Embeddings before = {}".format(embb[:5]))
                     print("Embeddings after = {}".format(emba[:5]))
