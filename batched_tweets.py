@@ -223,6 +223,28 @@ def save_dictionary(worddict, wordcount, loc):
         pkl.dump(wordcount, f)
 
 def create_pairs(data_path):
+    def random_combination(iterable, r):
+        "Random selection from itertools.combinations(iterable, r)"
+        pool = tuple(iterable)
+        n = len(pool)
+        indices = sorted(random.sample(xrange(n), r))
+        return tuple(pool[i] for i in indices)
+    tags = []
+    first = []
+    second = []
+    with io.open(data_path,'r', encoding='utf-8') as f:
+        for line in f:
+            j = json.loads(line)
+            for i in range(MAX_TRIPLES_PER_HASHTAG): 
+                pair = random_combination(j[1],2)
+                # tags is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
+                tags.append((j[0], pair[0][0], pair[1][0]))
+                first.append(pair[0][1])
+                second.append(pair[1][1])
+
+    return (first, second, tags)
+
+def create_pairs_old(data_path):
     tags = []
     first = []
     second = []
@@ -231,6 +253,25 @@ def create_pairs(data_path):
             j = json.loads(line)
             num_pairs = 0
             for pair in itertools.combinations(j[1],2):
+                # tags is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
+                tags.append((j[0], pair[0][0], pair[1][0]))
+                first.append(pair[0][1])
+                second.append(pair[1][1])
+                num_pairs = num_pairs+1
+                if num_pairs == MAX_TRIPLES_PER_HASHTAG:
+                    break
+
+    return (first, second, tags)
+
+def create_pairs_old(data_path):
+    tags = []
+    first = []
+    second = []
+    with io.open(data_path,'r', encoding='utf-8') as f:
+        for line in f:
+            j = json.loads(line)
+            num_pairs = 0
+            for pair in itertools.random_combinations(j[1],2):
                 # tags is a list of meta data for each pair: [<hashtag>, <tweet 1 id>, <tweet 2 id>]
                 tags.append((j[0], pair[0][0], pair[1][0]))
                 first.append(pair[0][1])
