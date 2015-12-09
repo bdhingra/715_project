@@ -41,11 +41,11 @@ SAVEF = 1000
 # Regularization
 REGULARIZATION = 0
 # Debug mode
-DEBUG = True
+DEBUG = False
 # Reload model
 RELOAD_MODEL = False
 # Reload data
-RELOAD_DATA = False
+RELOAD_DATA = True
 # Number of attempts to find negative tweet sample
 ATTEMPTS = 15
 # Momentum

@@ -11,6 +11,7 @@ import sys
 import batched_tweets
 import time
 import cPickle as pkl
+import shutil
 
 from collections import OrderedDict
 from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, DEBUG, REGULARIZATION, RELOAD_MODEL, RELOAD_DATA, MOMENTUM, USE_SCHEDULE
@@ -36,6 +37,8 @@ def display_actv(x, x_m, y, y_m, z, z_m, inps, net, prefix):
         print("layer "+prefix+" {} - {}".format(l.name, f(x,x_m,y,y_m,z,z_m)))
 
 def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
+
+    shutil.copyfile('settings.py','%s/settings.txt'%save_path)
 
     print("Preparing Data...")
 
