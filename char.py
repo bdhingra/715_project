@@ -13,7 +13,7 @@ import time
 import cPickle as pkl
 
 from collections import OrderedDict
-from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION, RELOAD_MODEL, RELOAD_DATA
+from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION, RELOAD_MODEL, RELOAD_DATA, MOMENTUM, USE_SCHEDULE
 from model import tweet2vec, init_params, load_params_shared
 
 def tnorm(tens):
@@ -79,22 +79,24 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     tn_mask = T.fmatrix()
 
     # Embeddings
-    emb_t = tweet2vec(tweet, t_mask, params, n_char)[0]
-    emb_tp = tweet2vec(ptweet, tp_mask, params, n_char)[0]
-    emb_tn = tweet2vec(ntweet, tn_mask, params, n_char)[0]
+    emb_t = lasagne.layers.get_output(tweet2vec(tweet, t_mask, params, n_char))
+    emb_tp = lasagne.layers.get_output(tweet2vec(ptweet, tp_mask, params, n_char))
+    emb_tn = lasagne.layers.get_output(tweet2vec(ntweet, tn_mask, params, n_char))
 
     # batch loss
     D1 = 1 - T.batched_dot(emb_t, emb_tp)/(tnorm(emb_t)*tnorm(emb_tp))
     D2 = 1 - T.batched_dot(emb_t, emb_tn)/(tnorm(emb_t)*tnorm(emb_tn))
     gap = D1-D2+M
     loss = gap*(gap>0)
-    cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params, n_char)[1], lasagne.regularization.l2)
+    cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params, n_char), lasagne.regularization.l2)
     cost_only = T.mean(loss)
-    reg_only = REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params, n_char)[1], lasagne.regularization.l2)
+    reg_only = REGULARIZATION*lasagne.regularization.regularize_network_params(tweet2vec(tweet, t_mask, params, n_char), lasagne.regularization.l2)
 
     # params and updates
     print("Computing updates...")
-    updates = lasagne.updates.adagrad(cost, params.values(), LEARNING_RATE)
+    lr = LEARNING_RATE
+    mu = MOMENTUM
+    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(tweet2vec(tweet,t_mask,params,n_char)), lr, momentum=mu)
 
     # Theano function
     print("Compiling theano functions...")
@@ -102,7 +104,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     #dist = theano.function(inps,[D1,D2])
     #l = theano.function(inps,loss)
     #t2v = theano.function(inps,[emb_t,emb_tp,emb_tn])
-    cost_val = theano.function(inps,cost_only)
+    cost_val = theano.function(inps,[cost_only, emb_t, emb_tp, emb_tn])
     reg_val = theano.function([],reg_only)
     train = theano.function(inps,cost,updates=updates)
 
@@ -115,6 +117,15 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
             train_cost = 0.
             print("Epoch {}".format(epoch))
 
+            if USE_SCHEDULE:
+                # schedule
+                if epoch > 0 and epoch % 5 == 0:
+                    print("Updating Schedule...")
+                    lr = max(1e-5,lr/2)
+                    mu = mu - 0.05
+                    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(net), lr, momentum=mu)
+                    train = theano.function(inps,cost,updates=updates)
+
             ud_start = time.time()
             for x,y,z in train_iter:
                 if not x:
@@ -124,6 +135,12 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 n_samples +=len(x)
                 uidx += 1
 
+                if DEBUG and uidx > 3:
+                    sys.exit()
+
+                if DEBUG:
+                    print("Tweets = {}".format(x[:5]))
+
                 x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data(x, y, z, chardict, maxlen=MAX_LENGTH, n_chars=n_char)
 
                 if x==None:
@@ -131,9 +148,24 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     uidx -= 1
                     continue
 
+                if DEBUG:
+                    print("Params before update...")
+                    print_params(params)
+                    display_actv(x,x_m,y,y_m,z,z_m,inps,tweet2vec(tweet,t_mask,params,n_char),'before')
+                    cb, embb, embb_p, embb_n = cost_val(x,x_m,y,y_m,z,z_m)
+
                 curr_cost = train(x,x_m,y,y_m,z,z_m)
                 ud = time.time() - ud_start
                 train_cost += curr_cost*len(x)
+
+                if DEBUG:
+                    print("Params after update...")
+                    print_params(params)
+                    display_actv(x,x_m,y,y_m,z,z_m,inps,w2s,'after')
+                    ca, emba, emba_p, emba_n = cost_val(x,x_m,y,y_m,z,z_m)
+                    print("Embeddings before = {}".format(embb[:5]))
+                    print("Embeddings after = {}".format(emba[:5]))
+                    print("Cost before update = {} \nCost after update = {}".format(cb, ca))
 
                 if np.isnan(curr_cost) or np.isinf(curr_cost):
                     print("Nan detected.")
@@ -165,7 +197,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     print("Validation: Minibatch with zero samples under maxlength")
                     continue
 
-                curr_cost = cost_val(x,x_m,y,y_m,z,z_m)
+                curr_cost, _, _, _ = cost_val(x,x_m,y,y_m,z,z_m)
                 validation_cost += curr_cost*len(x)
 
             regularization_cost = reg_val()
@@ -182,7 +214,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 np.savez('%s/model_%d.npz' % (save_path,epoch),**saveparams)
             print("Done.")
             
-            if DEBUG:
+            if False:
                 # store embeddings and data
                 features = np.zeros((len(train_iter.data[0]),3*WDIM))
                 distances = np.zeros((len(train_iter.data[0]),2))
@@ -201,7 +233,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     np.save(df,features)
                 with open('debug/dist_%d.npy'%epoch,'w') as ds:
                     np.save(ds,distances)
-        if DEBUG:
+        if False:
             with open('debug/data.txt','w') as dd:
                 for triple in zip(train_iter.data[0],train_iter.data[1],train_iter.data[2]):
                     dd.write('%s\t%s\t%s\n' % (triple[0],triple[1],triple[2]))

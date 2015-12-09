@@ -14,7 +14,7 @@ import cPickle as pkl
 import shutil
 
 from collections import OrderedDict
-from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION, RELOAD_MODEL, RELOAD_DATA, MAX_WORD_LENGTH, MAX_SEQ_LENGTH
+from settings import NUM_EPOCHS, N_BATCH, MAX_LENGTH, N_CHAR, CHAR_DIM, SCALE, C2W_HDIM, WDIM, M, LEARNING_RATE, DISPF, SAVEF, N_VAL, DEBUG, REGULARIZATION, RELOAD_MODEL, RELOAD_DATA, MAX_WORD_LENGTH, MAX_SEQ_LENGTH, MOMENTUM, USE_SCHEDULE
 from model import char2word2vec, init_params_c2w2s, load_params_shared
 
 def tnorm(tens):
@@ -109,7 +109,9 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
 
     # params and updates
     print("Computing updates...")
-    updates = lasagne.updates.adagrad(cost, params.values(), LEARNING_RATE)
+    lr = LEARNING_RATE
+    mu = MOMENTUM
+    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(w2s), lr, momentum=mu)
 
     # Theano function
     print("Compiling theano functions...")
@@ -129,6 +131,15 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
             train_cost = 0.
             print("Epoch {}".format(epoch))
 
+            if USE_SCHEDULE:
+                # schedule
+                if epoch > 0 and epoch % 5 == 0:
+                    print("Updating Schedule...")
+                    lr = max(1e-5,lr/2)
+                    mu = mu - 0.05
+                    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(net), lr, momentum=mu)
+                    train = theano.function(inps,cost,updates=updates)
+
             ud_start = time.time()
             for x,y,z in train_iter:
                 if not x:
@@ -137,7 +148,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
 
                 n_samples +=len(x)
                 uidx += 1
-                if DEBUG and uidx > 1:
+                if DEBUG and uidx > 3:
                     sys.exit()
 
                 if DEBUG:
