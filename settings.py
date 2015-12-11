@@ -1,7 +1,7 @@
 # Set global params here
 
 # Number of epochs
-NUM_EPOCHS = 15
+NUM_EPOCHS = 50
 # Batch size
 N_BATCH = 64
 # Max sequence length
@@ -21,17 +21,17 @@ MAX_TRIPLES_PER_HASHTAG = 1000
 # Initialization scale
 SCALE = 0.1
 # Dimensionality of C2W hidden states
-C2W_HDIM = 150  
+C2W_HDIM = 100
 # Dimensionality of word vectors
-WDIM = 150
+WDIM = 100
 # Dimensionality of W2S hidden states
-W2S_HDIM = 150
+W2S_HDIM = 100
 # Dimensionality of sequence
-SDIM = 150
+SDIM = 100
 # Gap parameter
 M = 0.5
 # Learning rate
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.1
 # Display frequency
 DISPF = 5
 # Save frequency
@@ -39,16 +39,18 @@ SAVEF = 1000
 # Validation set
 #N_VAL = 5000000
 # Regularization
-REGULARIZATION = 0
+REGULARIZATION = 1e-5
 # Debug mode
-DEBUG = False
+DEBUG = True
 # Reload model
 RELOAD_MODEL = False
 # Reload data
-RELOAD_DATA = True
+RELOAD_DATA = False
 # Number of attempts to find negative tweet sample
 ATTEMPTS = 15
 # Momentum
-MOMENTUM = 0.9
+MOMENTUM = 0.99
 # learning schedule
-USE_SCHEDULE = False
+USE_SCHEDULE = True
+# gradient clipping
+GRAD_CLIP = 10

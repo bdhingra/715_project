@@ -1,8 +1,8 @@
 #!/bin/bash
 
 for i in {1..11}; do
-    mkdir model/tuning/${i}
+    mkdir model/tuning_c2w2s/${i}
     cp hyperparams/settings_${i}.py settings.py
-    python char.py model/363_tags_1k_to_4k/train_pairs.pkl model/363_tags_1k_to_4k/val_pairs.pkl model/tuning/${i}/ > logs/tuning_${i}.log
-    grep Regularization < logs/tuning_${i}.log >> logs/all_tuning.log
+    python char_c2w2s.py model/363_tags_1k_to_4k/train_pairs.pkl model/363_tags_1k_to_4k/val_pairs.pkl model/tuning_c2w2s/${i}/ > logs/tuning_c2w2s_${i}.log
+    grep Regularization < logs/tuning_c2w2s_${i}.log >> logs/all_tuning_c2w2s.log
 done

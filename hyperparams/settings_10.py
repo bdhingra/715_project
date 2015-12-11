@@ -1,7 +1,7 @@
 # Set global params here
 
 # Number of epochs
-NUM_EPOCHS = 15
+NUM_EPOCHS = 8
 # Batch size
 N_BATCH = 64
 # Max sequence length

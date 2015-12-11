@@ -7,6 +7,8 @@ dictPath = sys.argv[1]
 tagPath = sys.argv[2]
 outPath = sys.argv[3]
 
+MIN_T = 1000
+
 def create_dict(f):
 	tag_dict = defaultdict(int)
 	for line in f:
@@ -23,7 +25,7 @@ def add_tags(f_in, f_out, tag_dict):
 def remove_tags(f_in, f_out, tag_dict):
 	for line in f_in:
 		current = json.loads(line)
-		if not current[0] in tag_dict:
+		if not current[0] in tag_dict and len(current[1]) > MIN_T:
 			f_out.write(line)
 
 tag_dict = create_dict(open(tagPath,'r'))
