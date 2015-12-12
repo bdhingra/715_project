@@ -103,15 +103,14 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     D2 = 1 - T.batched_dot(emb_t, emb_tn)/(tnorm(emb_t)*tnorm(emb_tn))
     gap = D1-D2+M
     loss = gap*(gap>0)
-    cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(c2w, lasagne.regularization.l2) + REGULARIZATION*lasagne.regularization.regularize_network_params(w2s, lasagne.regularization.l2)
+    cost = T.mean(loss)
     cost_only = T.mean(loss)
-    reg_only = REGULARIZATION*lasagne.regularization.regularize_network_params(c2w, lasagne.regularization.l2) + REGULARIZATION*lasagne.regularization.regularize_network_params(w2s, lasagne.regularization.l2)
 
     # params and updates
     print("Computing updates...")
     lr = LEARNING_RATE
     mu = MOMENTUM
-    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(w2s), lr, momentum=mu)
+    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(w2s, trainable=True), lr, momentum=mu)
 
     # Theano function
     print("Compiling theano functions...")
@@ -120,7 +119,6 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     #l = theano.function(inps,loss)
     cost_val = theano.function(inps,[cost_only, emb_t, emb_tp, emb_tn])
     train = theano.function(inps,cost,updates=updates)
-    reg_val = theano.function([],reg_only)
 
     # Training
     print("Training...")
@@ -133,12 +131,18 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
 
             if USE_SCHEDULE:
                 # schedule
-                if epoch > 0 and epoch % 5 == 0:
+                if epoch > 0 and (epoch+1) % 10 == 0:
                     print("Updating Schedule...")
-                    lr = max(1e-5,lr/2)
-                    mu = mu - 0.05
-                    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(net), lr, momentum=mu)
+                    lr = max(1e-5,lr/10)
+                    mu = mu - 0.1
+                    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(net, trainable=True), lr, momentum=mu)
                     train = theano.function(inps,cost,updates=updates)
+
+            if epoch >= 10:
+                cost = T.mean(loss) + REGULARIZATION*lasagne.regularization.regularize_network_params(c2w, lasagne.regularization.l2) + REGULARIZATION*lasagne.regularization.regularize_network_params(w2s, lasagne.regularization.l2)
+                reg_only = REGULARIZATION*lasagne.regularization.regularize_network_params(c2w, lasagne.regularization.l2) + REGULARIZATION*lasagne.regularization.regularize_network_params(w2s, lasagne.regularization.l2)
+                reg_val = theano.function([],reg_only)
+                train = theano.function(inps,cost,updates=updates)
 
             ud_start = time.time()
             for x,y,z in train_iter:
@@ -213,7 +217,10 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 curr_cost, _, _, _ = cost_val(x,x_m,y,y_m,z,z_m)
                 validation_cost += curr_cost*len(x)
 
-            regularization_cost = reg_val()
+            if epoch>=10:
+                regularization_cost = reg_val()
+            else:
+                regularization_cost = 0
             print("Epoch {} Training Cost {} Validation Cost {} Regularization Cost {}".format(epoch, train_cost/n_samples, validation_cost/n_val_samples, regularization_cost))
             print("Seen {} samples.".format(n_samples))
 
