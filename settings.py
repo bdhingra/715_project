@@ -41,7 +41,7 @@ SAVEF = 1000
 # Regularization
 REGULARIZATION = 1e-5
 # Debug mode
-DEBUG = True
+DEBUG = False
 # Reload model
 RELOAD_MODEL = False
 # Reload data
