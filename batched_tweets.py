@@ -12,8 +12,6 @@ import distance
 class BatchedTweets():
 
     def __init__(self, data, batch_size=128, maxlen=None):
-        self.batch_size = 128
-
         self.data = data
         self.batch_size = batch_size
         self.maxlen = maxlen
