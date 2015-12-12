@@ -139,7 +139,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     print("Updating Schedule...")
                     lr = max(1e-5,lr/10)
                     mu = mu - 0.1
-                    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(net), lr, momentum=mu)
+                    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(net, trainable=True), lr, momentum=mu)
                     train = theano.function(inps,cost,updates=updates)
 
             if epoch >= 10:
