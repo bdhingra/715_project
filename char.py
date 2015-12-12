@@ -106,7 +106,6 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     loss = gap*(gap>0)
     cost = T.mean(loss)
     cost_only = T.mean(loss)
-    reg_only = 0
  
     # params and updates
     print("Computing updates...")
@@ -121,7 +120,6 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     #l = theano.function(inps,loss)
     #t2v = theano.function(inps,[emb_t,emb_tp,emb_tn])
     cost_val = theano.function(inps,[cost_only, emb_t, emb_tp, emb_tn])
-    reg_val = theano.function([],reg_only)
     train = theano.function(inps,cost,updates=updates)
 
     # Training
@@ -222,7 +220,10 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 curr_cost, _, _, _ = cost_val(x,x_m,y,y_m,z,z_m)
                 validation_cost += curr_cost*len(x)
 
-            regularization_cost = reg_val()
+            if epoch >= 10:
+                regularization_cost = reg_val()
+            else:
+                regularization_cost = 0
             print("Epoch {} Training Cost {} Validation Cost {} Regularization Cost {}".format(epoch, train_cost/n_samples, validation_cost/n_val_samples, regularization_cost))
             print("Seen {} samples.".format(n_samples))
 
