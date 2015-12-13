@@ -99,8 +99,8 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     emb_tn, c2w, w2s = char2word2vec(ntweet, tn_mask, params, n_char)
 
     # batch loss
-    D1 = 1 - T.batched_dot(emb_t, emb_tp)/(tnorm(emb_t)*tnorm(emb_tp))
-    D2 = 1 - T.batched_dot(emb_t, emb_tn)/(tnorm(emb_t)*tnorm(emb_tn))
+    D1 = 1. - T.batched_dot(emb_t, emb_tp)/(tnorm(emb_t)*tnorm(emb_tp)+1e-6)
+    D2 = 1. - T.batched_dot(emb_t, emb_tn)/(tnorm(emb_t)*tnorm(emb_tn)+1e-6)
     gap = D1-D2+M
     loss = gap*(gap>0)
     cost = T.mean(loss)
@@ -110,12 +110,12 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     print("Computing updates...")
     lr = LEARNING_RATE
     mu = MOMENTUM
-    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(w2s, trainable=True), lr, momentum=mu)
+    updates = lasagne.updates.nesterov_momentum(cost, params.values(), lr, momentum=mu)
 
     # Theano function
     print("Compiling theano functions...")
     inps = [tweet,t_mask,ptweet,tp_mask,ntweet,tn_mask]
-    #dist = theano.function(inps,[D1,D2])
+    dist = theano.function(inps,[D1,D2])
     #l = theano.function(inps,loss)
     cost_val = theano.function(inps,[cost_only, emb_t, emb_tp, emb_tn])
     train = theano.function(inps,cost,updates=updates)
@@ -123,6 +123,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
     # Training
     print("Training...")
     uidx = 0
+    nan_flag = False
     try:
         for epoch in range(num_epochs):
             n_samples = 0
@@ -135,7 +136,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     print("Updating Schedule...")
                     lr = max(1e-5,lr/10)
                     mu = mu - 0.1
-                    updates = lasagne.updates.nesterov_momentum(cost, lasagne.layers.get_all_params(net, trainable=True), lr, momentum=mu)
+                    updates = lasagne.updates.nesterov_momentum(cost, params.values(), lr, momentum=mu)
                     train = theano.function(inps,cost,updates=updates)
 
             if epoch >= 10:
@@ -145,20 +146,22 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                 train = theano.function(inps,cost,updates=updates)
 
             ud_start = time.time()
-            for x,y,z in train_iter:
-                if not x:
+            for xt,yt,zt in train_iter:
+                if not xt:
                     print("Minibatch with no valid triples")
                     continue
 
-                n_samples +=len(x)
+                n_samples +=len(xt)
                 uidx += 1
-                if DEBUG and uidx > 3:
+                if DEBUG and uidx > 20:
                     sys.exit()
 
                 if DEBUG:
-                    print("Tweets = {}".format(x[:5]))
+                    print("Tweets = {}".format(xt[:5]))
+                    print("Tweets = {}".format(yt[:5]))
+                    print("Tweets = {}".format(zt[:5]))
 
-                x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data_c2w2s(x, y, z, chardict, maxwordlen=MAX_WORD_LENGTH, maxseqlen=MAX_SEQ_LENGTH, n_chars=n_char)
+                x, x_m, y, y_m, z, z_m = batched_tweets.prepare_data_c2w2s(xt, yt, zt, chardict, maxwordlen=MAX_WORD_LENGTH, maxseqlen=MAX_SEQ_LENGTH, n_chars=n_char)
 
                 if x==None:
                     print("Minibatch with zero samples under maxlength.")
@@ -170,6 +173,7 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     print_params(params)
                     display_actv(x,x_m,y,y_m,z,z_m,inps,w2s,'before')
                     cb, embb, embb_p, embb_n = cost_val(x,x_m,y,y_m,z,z_m)
+                    d1, d2 = dist(x,x_m,y,y_m,z,z_m)
 
                 curr_cost = train(x,x_m,y,y_m,z,z_m)
                 train_cost += curr_cost*len(x)
@@ -179,13 +183,35 @@ def main(train_path,val_path,save_path,num_epochs=NUM_EPOCHS):
                     print_params(params)
                     display_actv(x,x_m,y,y_m,z,z_m,inps,w2s,'after')
                     ca, emba, emba_p, emba_n = cost_val(x,x_m,y,y_m,z,z_m)
+                    d1a, d2a = dist(x,x_m,y,y_m,z,z_m)
                     print("Embeddings before = {}".format(embb[:5]))
                     print("Embeddings after = {}".format(emba[:5]))
+                    print("Distances1 before = {}".format(d1))
+                    print("Distances2 before = {}".format(d2))
+                    print("Distances1 after = {}".format(d1a))
+                    print("Distances2 after = {}".format(d2a))
                     print("Cost before update = {} \nCost after update = {}".format(cb, ca))
 
                 if np.isnan(curr_cost) or np.isinf(curr_cost):
                     print("Nan detected.")
-                    return
+                    if not nan_flag:
+                        print("Saving...")
+                        saveparams = OrderedDict()
+                        for kk,vv in params.iteritems():
+                            saveparams[kk] = vv.get_value()
+                            np.savez('%s/model_nan.npz' % save_path,**saveparams)
+                        with open('%s/tweets_nan.pkl'%save_path,'w') as f:
+                            pkl.dump(xt,f)
+                            pkl.dump(yt,f)
+                            pkl.dump(zt,f)
+                        with open('%s/functions_nan.pkl'%save_path,'w') as f:
+                            pkl.dump(train,f)
+                            pkl.dump(cost_val,f)
+                        with open('%s/updates_nan.pkl'%save_path,'w') as f:
+                            pkl.dump(updates,f)
+                        print("Done.")
+                        nan_flag = True
+                    continue
 
                 ud = time.time() - ud_start
                 if np.mod(uidx, DISPF) == 0:

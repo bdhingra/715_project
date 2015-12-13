@@ -45,22 +45,22 @@ def word2seq(l_in_source,l_mask,params,prefix):
     c2w_f_update = lasagne.layers.Gate(W_in=params[prefix+'W_f_z'], W_hid=params[prefix+'U_f_z'], W_cell=None, b=params[prefix+'b_f_z'], nonlinearity=lasagne.nonlinearities.sigmoid)
     c2w_f_hidden = lasagne.layers.Gate(W_in=params[prefix+'W_f_h'], W_hid=params[prefix+'U_f_h'], W_cell=None, b=params[prefix+'b_f_h'], nonlinearity=lasagne.nonlinearities.tanh)
 
-    l_fgru_source = lasagne.layers.GRULayer(l_in_source, W2S_HDIM, resetgate=c2w_f_reset, updategate=c2w_f_update, hidden_update=c2w_f_hidden, hid_init=lasagne.init.Constant(0.), backwards=False, learn_init=False, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask, name='w2s_fgru')
+    l_fgru_source = lasagne.layers.GRULayer(l_in_source, W2S_HDIM, resetgate=c2w_f_reset, updategate=c2w_f_update, hidden_update=c2w_f_hidden, hid_init=lasagne.init.Constant(0.), backwards=False, learn_init=True, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask, name='w2s_fgru')
 
     # b-GRU
     c2w_b_reset = lasagne.layers.Gate(W_in=params[prefix+'W_b_r'], W_hid=params[prefix+'U_b_r'], W_cell=None, b=params[prefix+'b_b_r'], nonlinearity=lasagne.nonlinearities.sigmoid)
     c2w_b_update = lasagne.layers.Gate(W_in=params[prefix+'W_b_z'], W_hid=params[prefix+'U_b_z'], W_cell=None, b=params[prefix+'b_b_z'], nonlinearity=lasagne.nonlinearities.sigmoid)
     c2w_b_hidden = lasagne.layers.Gate(W_in=params[prefix+'W_b_h'], W_hid=params[prefix+'U_b_h'], W_cell=None, b=params[prefix+'b_b_h'], nonlinearity=lasagne.nonlinearities.tanh)
 
-    l_bgru_source = lasagne.layers.GRULayer(l_in_source, W2S_HDIM, resetgate=c2w_b_reset, updategate=c2w_b_update, hidden_update=c2w_b_hidden, hid_init=lasagne.init.Constant(0.), backwards=True, learn_init=False, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask, name='w2s_bgru')
+    l_bgru_source = lasagne.layers.GRULayer(l_in_source, W2S_HDIM, resetgate=c2w_b_reset, updategate=c2w_b_update, hidden_update=c2w_b_hidden, hid_init=lasagne.init.Constant(0.), backwards=True, learn_init=True, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask, name='w2s_bgru')
 
     # Slice final states
     l_f_source = lasagne.layers.SliceLayer(l_fgru_source, -1, 1, name='w2s_f_slice')
     l_b_source = lasagne.layers.SliceLayer(l_bgru_source, 0, 1, name='w2s_b_slice')
 
     # Dense layer
-    l_fdense_source = lasagne.layers.DenseLayer(l_f_source, SDIM, W=params[prefix+'W_df'], b=None, nonlinearity=None)
-    l_bdense_source = lasagne.layers.DenseLayer(l_b_source, SDIM, W=params[prefix+'W_db'], b=None, nonlinearity=None)
+    l_fdense_source = lasagne.layers.DenseLayer(l_f_source, SDIM, W=params[prefix+'W_df'], b=None, nonlinearity=None, name='w2s_fdense')
+    l_bdense_source = lasagne.layers.DenseLayer(l_b_source, SDIM, W=params[prefix+'W_db'], b=None, nonlinearity=None, name='w2s_bdense')
     #l_fdense_source = lasagne.layers.DenseLayer(l_f_source, SDIM, W=params[prefix+'W_df'], b=params[prefix+'b_df'], nonlinearity=None, name='w2s_f_dense')
     #l_bdense_source = lasagne.layers.DenseLayer(l_b_source, SDIM, W=params[prefix+'W_db'], b=params[prefix+'b_db'], nonlinearity=None, name='w2s_b_dense')
     l_w2s_source = lasagne.layers.ElemwiseSumLayer([l_fdense_source, l_bdense_source], coeffs=1, name='w2s_final')
@@ -85,22 +85,22 @@ def char2word(seqs,mask,params,prefix,n_char=N_CHAR):
     c2w_f_update = lasagne.layers.Gate(W_in=params[prefix+'W_f_z'], W_hid=params[prefix+'U_f_z'], W_cell=None, b=params[prefix+'b_f_z'], nonlinearity=lasagne.nonlinearities.sigmoid)
     c2w_f_hidden = lasagne.layers.Gate(W_in=params[prefix+'W_f_h'], W_hid=params[prefix+'U_f_h'], W_cell=None, b=params[prefix+'b_f_h'], nonlinearity=lasagne.nonlinearities.tanh)
 
-    l_fgru_source = lasagne.layers.GRULayer(l_clookup_source, C2W_HDIM, resetgate=c2w_f_reset, updategate=c2w_f_update, hidden_update=c2w_f_hidden, hid_init=lasagne.init.Constant(0.), backwards=False, learn_init=False, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask, name='c2w_fgru')
+    l_fgru_source = lasagne.layers.GRULayer(l_clookup_source, C2W_HDIM, resetgate=c2w_f_reset, updategate=c2w_f_update, hidden_update=c2w_f_hidden, hid_init=lasagne.init.Constant(0.), backwards=False, learn_init=True, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask, name='c2w_fgru')
 
     # b-GRU
     c2w_b_reset = lasagne.layers.Gate(W_in=params[prefix+'W_b_r'], W_hid=params[prefix+'U_b_r'], W_cell=None, b=params[prefix+'b_b_r'], nonlinearity=lasagne.nonlinearities.sigmoid)
     c2w_b_update = lasagne.layers.Gate(W_in=params[prefix+'W_b_z'], W_hid=params[prefix+'U_b_z'], W_cell=None, b=params[prefix+'b_b_z'], nonlinearity=lasagne.nonlinearities.sigmoid)
     c2w_b_hidden = lasagne.layers.Gate(W_in=params[prefix+'W_b_h'], W_hid=params[prefix+'U_b_h'], W_cell=None, b=params[prefix+'b_b_h'], nonlinearity=lasagne.nonlinearities.tanh)
 
-    l_bgru_source = lasagne.layers.GRULayer(l_clookup_source, C2W_HDIM, resetgate=c2w_b_reset, updategate=c2w_b_update, hidden_update=c2w_b_hidden, hid_init=lasagne.init.Constant(0.), backwards=True, learn_init=False, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask, name='c2w_bgru')
+    l_bgru_source = lasagne.layers.GRULayer(l_clookup_source, C2W_HDIM, resetgate=c2w_b_reset, updategate=c2w_b_update, hidden_update=c2w_b_hidden, hid_init=lasagne.init.Constant(0.), backwards=True, learn_init=True, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask, name='c2w_bgru')
 
     # Slice final states
     l_f_source = lasagne.layers.SliceLayer(l_fgru_source, -1, 1, name='c2w_f_slice')
     l_b_source = lasagne.layers.SliceLayer(l_bgru_source, 0, 1, name='c2w_b_slice')
 
     # Dense layer
-    l_fdense_source = lasagne.layers.DenseLayer(l_f_source, WDIM, W=params[prefix+'W_df'], b=None, nonlinearity=None)
-    l_bdense_source = lasagne.layers.DenseLayer(l_b_source, WDIM, W=params[prefix+'W_db'], b=None, nonlinearity=None)
+    l_fdense_source = lasagne.layers.DenseLayer(l_f_source, WDIM, W=params[prefix+'W_df'], b=None, nonlinearity=None, name='c2w_fdense')
+    l_bdense_source = lasagne.layers.DenseLayer(l_b_source, WDIM, W=params[prefix+'W_db'], b=None, nonlinearity=None, name='c2w_bdense')
     #l_fdense_source = lasagne.layers.DenseLayer(l_f_source, WDIM, W=params[prefix+'W_df'], b=params[prefix+'b_df'], nonlinearity=None, name='c2w_f_dense')
     #l_bdense_source = lasagne.layers.DenseLayer(l_b_source, WDIM, W=params[prefix+'W_db'], b=params[prefix+'b_db'], nonlinearity=None, name='c2w_b_dense')
     l_c2w_source = lasagne.layers.ElemwiseSumLayer([l_fdense_source, l_bdense_source], coeffs=1, name='c2w_final')
@@ -145,8 +145,8 @@ def init_params_c2w2s(n_chars=N_CHAR):
     # dense
     params[prefix+'W_df'] = theano.shared(np.random.normal(loc=0., scale=SCALE, size=(C2W_HDIM,WDIM)).astype('float32'), name=prefix+'W_df')
     params[prefix+'W_db'] = theano.shared(np.random.normal(loc=0., scale=SCALE, size=(C2W_HDIM,WDIM)).astype('float32'), name=prefix+'W_db')
-    params[prefix+'b_df'] = theano.shared(np.zeros((WDIM)).astype('float32'), name=prefix+'b_df')
-    params[prefix+'b_db'] = theano.shared(np.zeros((WDIM)).astype('float32'), name=prefix+'b_db')
+    #params[prefix+'b_df'] = theano.shared(np.zeros((WDIM)).astype('float32'), name=prefix+'b_df')
+    #params[prefix+'b_db'] = theano.shared(np.zeros((WDIM)).astype('float32'), name=prefix+'b_db')
 
     prefix = 'w2s_'
 
@@ -175,8 +175,8 @@ def init_params_c2w2s(n_chars=N_CHAR):
     # dense
     params[prefix+'W_df'] = theano.shared(np.random.normal(loc=0., scale=SCALE, size=(W2S_HDIM,SDIM)).astype('float32'), name=prefix+'W_df')
     params[prefix+'W_db'] = theano.shared(np.random.normal(loc=0., scale=SCALE, size=(W2S_HDIM,SDIM)).astype('float32'), name=prefix+'W_db')
-    params[prefix+'b_df'] = theano.shared(np.zeros((SDIM)).astype('float32'), name=prefix+'b_df')
-    params[prefix+'b_db'] = theano.shared(np.zeros((SDIM)).astype('float32'), name=prefix+'b_db')
+    #params[prefix+'b_df'] = theano.shared(np.zeros((SDIM)).astype('float32'), name=prefix+'b_df')
+    #params[prefix+'b_db'] = theano.shared(np.zeros((SDIM)).astype('float32'), name=prefix+'b_db')
 
     return params
 
@@ -239,14 +239,14 @@ def tweet2vec(tweet,mask,params,n_chars=N_CHAR):
     c2w_f_update = lasagne.layers.Gate(W_in=params['W_c2w_f_z'], W_hid=params['U_c2w_f_z'], W_cell=None, b=params['b_c2w_f_z'], nonlinearity=lasagne.nonlinearities.sigmoid)
     c2w_f_hidden = lasagne.layers.Gate(W_in=params['W_c2w_f_h'], W_hid=params['U_c2w_f_h'], W_cell=None, b=params['b_c2w_f_h'], nonlinearity=lasagne.nonlinearities.tanh)
 
-    l_fgru_source = lasagne.layers.GRULayer(l_clookup_source, C2W_HDIM, resetgate=c2w_f_reset, updategate=c2w_f_update, hidden_update=c2w_f_hidden, hid_init=lasagne.init.Constant(0.), backwards=False, learn_init=False, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask)
+    l_fgru_source = lasagne.layers.GRULayer(l_clookup_source, C2W_HDIM, resetgate=c2w_f_reset, updategate=c2w_f_update, hidden_update=c2w_f_hidden, hid_init=lasagne.init.Constant(0.), backwards=False, learn_init=True, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask)
 
     # b-GRU
     c2w_b_reset = lasagne.layers.Gate(W_in=params['W_c2w_b_r'], W_hid=params['U_c2w_b_r'], W_cell=None, b=params['b_c2w_b_r'], nonlinearity=lasagne.nonlinearities.sigmoid)
     c2w_b_update = lasagne.layers.Gate(W_in=params['W_c2w_b_z'], W_hid=params['U_c2w_b_z'], W_cell=None, b=params['b_c2w_b_z'], nonlinearity=lasagne.nonlinearities.sigmoid)
     c2w_b_hidden = lasagne.layers.Gate(W_in=params['W_c2w_b_h'], W_hid=params['U_c2w_b_h'], W_cell=None, b=params['b_c2w_b_h'], nonlinearity=lasagne.nonlinearities.tanh)
 
-    l_bgru_source = lasagne.layers.GRULayer(l_clookup_source, C2W_HDIM, resetgate=c2w_b_reset, updategate=c2w_b_update, hidden_update=c2w_b_hidden, hid_init=lasagne.init.Constant(0.), backwards=True, learn_init=False, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask)
+    l_bgru_source = lasagne.layers.GRULayer(l_clookup_source, C2W_HDIM, resetgate=c2w_b_reset, updategate=c2w_b_update, hidden_update=c2w_b_hidden, hid_init=lasagne.init.Constant(0.), backwards=True, learn_init=True, gradient_steps=-1, grad_clipping=GRAD_CLIP, unroll_scan=False, precompute_input=True, mask_input=l_mask)
 
     # Slice final states
     l_f_source = lasagne.layers.SliceLayer(l_fgru_source, -1, 1)

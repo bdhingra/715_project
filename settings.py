@@ -31,7 +31,7 @@ SDIM = 100
 # Gap parameter
 M = 0.5
 # Learning rate
-LEARNING_RATE = 0.1
+LEARNING_RATE = 0.01
 # Display frequency
 DISPF = 5
 # Save frequency
@@ -45,7 +45,7 @@ DEBUG = False
 # Reload model
 RELOAD_MODEL = False
 # Reload data
-RELOAD_DATA = False
+RELOAD_DATA = True
 # Number of attempts to find negative tweet sample
 ATTEMPTS = 15
 # Momentum
@@ -53,4 +53,4 @@ MOMENTUM = 0.99
 # learning schedule
 USE_SCHEDULE = True
 # gradient clipping
-GRAD_CLIP = 10
+GRAD_CLIP = 10.
